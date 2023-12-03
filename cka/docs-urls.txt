@@ -1,0 +1,6 @@
+Kubectl commands docs
+https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands
+
+Kubectl conventions
+https://kubernetes.io/docs/reference/kubectl/conventions/
+

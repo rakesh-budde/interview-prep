@@ -1,32 +1,57 @@
 Create an NGINX Pod
-
 kubectl run nginx --image=nginx
 
 Generate POD Manifest YAML file (-o yaml). Don't create it(--dry-run)
-
 kubectl run nginx --image=nginx --dry-run=client -o yaml
 
 Create a deployment
-
 kubectl create deployment --image=nginx nginx
 
 Generate Deployment YAML file (-o yaml). Don't create it(--dry-run)
-
 kubectl create deployment --image=nginx nginx --dry-run=client -o yaml
 
 Generate Deployment YAML file (-o yaml). Don’t create it(–dry-run) and save it to a file.
-
 kubectl create deployment --image=nginx nginx --dry-run=client -o yaml > nginx-deployment.yaml
 
 Make necessary changes to the file (for example, adding more replicas) and then create the deployment.
-
 kubectl create -f nginx-deployment.yaml
-
-
 
 OR
 
 In k8s version 1.19+, we can specify the --replicas option to create a deployment with 4 replicas.
-
 kubectl create deployment --image=nginx nginx --replicas=4 --dry-run=client -o yaml > nginx-deployment.yaml
+
+Set the current namespace as default namespace
+kubectl config set-context $(kubectl config current-context) --namespace=dev
+
+Create a service for a deployment
+kubectl expose deployment nginx --port 80
+
+Create a Service named redis-service of type ClusterIP to expose pod redis on port 6379
+kubectl expose pod redis --port=6379 --name redis-service --dry-run=client -o yaml
+or
+You cannot pass labels as selectors to create a service
+kubectl create service clusterip redis --tcp=6379:6379 --dry-run=client -o yaml
+or
+kubectl expose pod nginx --type=NodePort --port=80 --name=nginx-service --dry-run=client -o yaml
+
+Scale replicas of a deployment
+kubectl scale deployment nginx --replicas=3
+
+Set image of a deployment
+kubectl set image deployment nginx nginx=nginx:1.18
+
+Check authorization 
+kubectl auth can-i create deployment
+
+Check user authorization
+kubectl auth can-i create pod --as dev-user
+
+
+List namespaced resources
+kubectl api-resources --namespaced=true
+
+List cluster scoped resources
+kubectl api-resources --namespaced=false
+
 

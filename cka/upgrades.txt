@@ -1,0 +1,9 @@
+# Check the status of rolling updates
+Kubectl rollout status deployment <name>
+
+# History of rollout deployments
+Kubectl rollout history deployment <name>
+
+#Rollback to old deployment
+Kubectl rollout undo deploy <name>
+
