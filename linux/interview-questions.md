@@ -1,6 +1,6 @@
-Q) Explain the boot process in linux?
-Ans:
-The boot process of Red Hat Enterprise Linux (RHEL) 8 involves several stages. Here’s a detailed explanation of each stage:
+## Q) Explain the boot process in linux?
+
+**Ans**: The boot process of Red Hat Enterprise Linux (RHEL) 8 involves several stages. Here’s a detailed explanation of each stage:
 
 ### 1. BIOS/UEFI
 - **BIOS (Basic Input/Output System) or UEFI (Unified Extensible Firmware Interface)**: When the computer is powered on, the BIOS or UEFI firmware initializes the hardware components and performs a Power-On Self Test (POST). It then searches for a bootable device (like a hard drive, CD/DVD, or USB drive).
