@@ -148,6 +148,61 @@ To troubleshoot and resolve packet loss issues between two Linux hosts, you can 
 - **If Network Congestion**: Reduce traffic or implement Quality of Service (QoS) to prioritize critical traffic.
 
 
+---
+## Q) Can alb work with tcp traffic and nlb work with http traffic in AWS?
+In AWS, **Application Load Balancers (ALBs)** and **Network Load Balancers (NLBs)** are primarily designed for specific use cases, but their capabilities do overlap in certain areas. Here's how they work with **TCP** and **HTTP** traffic:
+
+---
+
+### **Application Load Balancer (ALB)**
+- **Designed for**: Layer 7 (Application Layer) of the OSI model.
+- **Primary Protocols Supported**: HTTP, HTTPS, WebSocket.
+- **TCP Traffic Support**: ALBs are not designed for generic TCP traffic but can handle TCP-based protocols like HTTP and HTTPS. They do not support arbitrary non-HTTP protocols on TCP.
+
+---
+
+### **Network Load Balancer (NLB)**
+- **Designed for**: Layer 4 (Transport Layer) of the OSI model.
+- **Primary Protocols Supported**: TCP, UDP, TLS.
+- **HTTP Traffic Support**: 
+   - NLB can forward HTTP traffic to backend targets, but it does so at the transport layer without understanding or manipulating the HTTP headers. 
+   - If advanced Layer 7 features (e.g., URL-based routing, header-based routing) are needed, ALB is better suited.
+
+---
+
+### **Key Differences in Capabilities**
+| **Feature**                     | **ALB**                                      | **NLB**                                      |
+|---------------------------------|---------------------------------------------|---------------------------------------------|
+| **HTTP/HTTPS Traffic**          | Fully supported with Layer 7 capabilities.  | Can forward HTTP/HTTPS traffic but lacks Layer 7 capabilities. |
+| **TCP Traffic**                 | Not supported unless encapsulated in HTTP.  | Fully supported for arbitrary TCP traffic.  |
+| **Protocol Awareness**          | Application-aware (e.g., routing based on headers, paths). | Transparent pass-through; no protocol awareness. |
+| **Connection Handling**         | Handles HTTP sessions (keep-alive, sticky sessions). | Passes raw connections directly to targets. |
+
+---
+
+### **Can ALB work with TCP traffic?**
+- Not in a generic sense. ALBs only work with protocols like HTTP, HTTPS, and WebSockets that operate over TCP. They can't handle raw TCP traffic for protocols like MySQL or SMTP.
+
+---
+
+### **Can NLB work with HTTP traffic?**
+- Yes, **NLB can forward HTTP traffic** to targets, but it treats it as raw TCP traffic. It doesn't have Layer 7 features like path-based routing, host-based routing, or WebSocket support.
+
+---
+
+### **When to Use Each?**
+1. **Use ALB**:
+   - For HTTP/HTTPS applications that require Layer 7 features (e.g., URL-based routing, header inspection).
+   - For WebSocket-based applications.
+
+2. **Use NLB**:
+   - For raw TCP/UDP traffic (e.g., databases, IoT protocols, gaming servers).
+   - For high-performance, low-latency scenarios with minimal overhead.
+   - For HTTP/HTTPS when Layer 7 features are not required and performance is critical.
+
+---
+
+If both protocols are needed simultaneously, you can use **ALB for HTTP traffic** and **NLB for raw TCP traffic** as part of a hybrid architecture.
 
 
 
