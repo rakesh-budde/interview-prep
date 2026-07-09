@@ -1,0 +1,609 @@
+Act as a Principal Engineer, Distinguished SRE, DevOps Architect, Staff Platform Engineer, and FAANG Interviewer.
+
+I am a DevOps Engineer with 5 years of experience preparing for:
+
+- Senior DevOps Engineer
+- Site Reliability Engineer (SRE)
+- Platform Engineer
+- Cloud Engineer
+- Infrastructure Engineer
+- Cloud Platform Engineer
+
+at FAANG/MANGA companies such as:
+
+- Amazon
+- Google
+- Meta
+- Netflix
+- Microsoft
+- Apple
+- Uber
+- Airbnb
+- LinkedIn
+- Salesforce
+
+Generate a complete GitHub README.md repository containing detailed interview questions, answers, deep dives, architecture discussions, production troubleshooting, hands-on labs, behavioral questions, and system design content.
+
+The repository should be organized as a complete study guide from beginner to expert level.
+
+For every technology and topic include:
+
+1. Theory
+2. Architecture
+3. Internals
+4. Frequently Asked Interview Questions
+5. Detailed Answers
+6. Follow-up Questions
+7. Real Production Scenarios
+8. Troubleshooting Scenarios
+9. Design Scenarios
+10. Security Best Practices
+11. Performance Optimization
+12. Cost Optimization
+13. Common Mistakes
+14. Hands-on Labs
+15. Debugging Exercises
+16. Command References
+17. FAANG-Level Deep Dive Questions
+18. Whiteboard Interview Questions
+19. Practical Examples
+20. Documentation Links
+
+For each question provide:
+
+- Basic Answer
+- Advanced Answer
+- Expert Answer
+- Interview Tips
+- Follow-up Discussion
+
+Format output as a professional GitHub README with:
+- Table of Contents
+- Collapsible sections
+- Architecture diagrams
+- Study checkpoints
+- Learning roadmap
+
+=====================================================
+SECTION 1: AWS
+=====================================================
+
+Cover:
+
+- IAM
+- Organizations
+- Control Tower
+- VPC
+- Route53
+- Direct Connect
+- Transit Gateway
+- PrivateLink
+- Security
+- EC2
+- S3
+- EBS
+- EFS
+- FSx
+- RDS
+- Aurora
+- DynamoDB
+- ElastiCache
+- Redshift
+- ECS
+- EKS
+- Lambda
+- API Gateway
+- SNS
+- SQS
+- EventBridge
+- CloudWatch
+- CloudTrail
+- X-Ray
+- KMS
+- WAF
+- Shield
+
+Deep Dive:
+
+- AWS Networking Internals
+- AWS Security Architecture
+- Multi Account Strategy
+- Multi Region Architecture
+- Cost Optimization
+- Reliability Engineering
+
+Generate:
+
+- 500+ AWS Interview Questions
+- 100 Troubleshooting Scenarios
+- 50 Architecture Design Questions
+
+Include AWS documentation links.
+
+=====================================================
+SECTION 2: MICROSOFT AZURE
+=====================================================
+
+Cover:
+
+- Azure Fundamentals
+- Management Groups
+- Subscriptions
+- Resource Groups
+- Azure AD / Entra ID
+- RBAC
+- Networking
+- Virtual Networks
+- NSG
+- Azure Firewall
+- Application Gateway
+- Front Door
+- Load Balancer
+- ExpressRoute
+- VPN Gateway
+- AKS
+- ACR
+- Azure Storage
+- Key Vault
+- CosmosDB
+- SQL Server
+- Azure Monitor
+- Log Analytics
+- Application Insights
+- Azure Policy
+- Defender for Cloud
+
+Deep Dive:
+
+- Azure Networking
+- Landing Zones
+- Enterprise Scale Architecture
+- Multi Region Design
+- Identity Architecture
+
+Generate:
+
+- 500+ Azure Questions
+- 100 Troubleshooting Scenarios
+- 50 Design Questions
+
+Include official Microsoft documentation links.
+
+=====================================================
+SECTION 3: KUBERNETES
+=====================================================
+
+Cover:
+
+- Architecture
+- API Server
+- ETCD
+- Scheduler
+- Controller Manager
+- Kubelet
+- Kube Proxy
+- CoreDNS
+
+Workloads:
+
+- Pods
+- Deployments
+- StatefulSets
+- DaemonSets
+- Jobs
+- CronJobs
+
+Networking:
+
+- Services
+- Ingress
+- CNI
+- Service Mesh
+- DNS
+
+Security:
+
+- RBAC
+- Pod Security
+- Network Policies
+- Secrets
+
+Storage:
+
+- PV
+- PVC
+- CSI Drivers
+
+Advanced:
+
+- Scheduler Internals
+- ETCD Backup and Recovery
+- API Server Troubleshooting
+- Production Cluster Debugging
+
+Scenarios:
+
+- CrashLoopBackOff
+- OOMKilled
+- Pending Pods
+- NodeNotReady
+- Network Failures
+
+Generate:
+
+- 500+ Questions
+- 100 Troubleshooting Scenarios
+- 50 Design Problems
+
+=====================================================
+SECTION 4: DOCKER
+=====================================================
+
+Cover:
+
+- Architecture
+- Container Runtime
+- Namespaces
+- Cgroups
+- OverlayFS
+- Networking
+- Volumes
+
+Advanced:
+
+- Container Security
+- Registry Internals
+- Build Optimization
+- Multi-stage Builds
+
+Generate:
+
+- 200+ Questions
+- Production Scenarios
+- Debugging Exercises
+
+=====================================================
+SECTION 5: LINUX
+=====================================================
+
+Cover:
+
+- Process Management
+- Memory Management
+- CPU Scheduling
+- Threads
+- Networking
+- Storage
+- LVM
+- Systemd
+- Security
+- SELinux
+- AppArmor
+
+Deep Dive:
+
+- Linux Internals
+- Kernel
+- Boot Process
+- IO Path
+- Filesystem Internals
+
+Generate:
+
+- 500+ Questions
+- 100 Troubleshooting Scenarios
+- Hands-on Labs
+
+=====================================================
+SECTION 6: TERRAFORM
+=====================================================
+
+Cover:
+
+- Architecture
+- Providers
+- Resources
+- State
+- Backend
+- Modules
+- Workspaces
+
+Advanced:
+
+- State Management
+- Drift Detection
+- Import Strategies
+- Performance Optimization
+
+Generate:
+
+- 250+ Questions
+- Real Production Scenarios
+- Design Challenges
+
+=====================================================
+SECTION 7: ANSIBLE
+=====================================================
+
+Cover:
+
+- Architecture
+- Inventory
+- Playbooks
+- Roles
+- Collections
+- Variables
+- Vault
+
+Advanced:
+
+- Dynamic Inventory
+- AWX
+- Ansible Tower
+
+Generate:
+
+- 200+ Questions
+- Troubleshooting Exercises
+
+=====================================================
+SECTION 8: AZURE DEVOPS
+=====================================================
+
+Cover:
+
+- Repos
+- Pipelines
+- Artifacts
+- Boards
+- Test Plans
+
+Advanced:
+
+- YAML Pipelines
+- Self Hosted Agents
+- Multi-stage Pipelines
+- Security
+
+Generate:
+
+- 300+ Questions
+- Pipeline Troubleshooting Scenarios
+
+=====================================================
+SECTION 9: JENKINS
+=====================================================
+
+Cover:
+
+- Architecture
+- Controllers
+- Agents
+- Pipelines
+- Shared Libraries
+- Plugins
+
+Advanced:
+
+- HA Jenkins
+- Security
+- Scaling
+
+Generate:
+
+- 300+ Questions
+- Troubleshooting Scenarios
+
+=====================================================
+SECTION 10: GITHUB ACTIONS
+=====================================================
+
+Cover:
+
+- Workflows
+- Jobs
+- Actions
+- Runners
+- Secrets
+
+Advanced:
+
+- Reusable Workflows
+- OIDC Authentication
+- Multi Environment Deployments
+
+Generate:
+
+- 250+ Questions
+- Real-world CI/CD Scenarios
+
+=====================================================
+SECTION 11: CI/CD
+=====================================================
+
+Cover:
+
+- SDLC
+- GitFlow
+- Trunk Based Development
+- Blue Green
+- Canary
+- Rolling Deployments
+
+Advanced:
+
+- Progressive Delivery
+- GitOps
+- Feature Flags
+
+Generate:
+
+- 300+ Questions
+- Architecture Discussions
+- Failure Recovery Scenarios
+
+=====================================================
+SECTION 12: GITOPS
+=====================================================
+
+Cover:
+
+- Principles
+- ArgoCD
+- FluxCD
+- Repository Structures
+
+Advanced:
+
+- Multi Cluster GitOps
+- Multi Region GitOps
+- Security
+
+Generate:
+
+- 200+ Questions
+- Troubleshooting Scenarios
+
+=====================================================
+SECTION 13: PYTHON FOR DEVOPS
+=====================================================
+
+Cover:
+
+- Core Python
+- OOP
+- File Handling
+- JSON
+- YAML
+- APIs
+- Concurrency
+
+DevOps Use Cases:
+
+- Automation
+- Infrastructure Management
+- Monitoring Scripts
+- Kubernetes Automation
+
+Advanced:
+
+- Asyncio
+- Multithreading
+- Multiprocessing
+
+Generate:
+
+- 300+ Questions
+- Coding Challenges
+- Scenario-Based Problems
+
+=====================================================
+SECTION 14: SYSTEM DESIGN
+=====================================================
+
+Generate 100 System Design Questions With Solutions:
+
+- Kubernetes Platform
+- Global SaaS Platform
+- CI/CD Platform
+- Observability Platform
+- Banking Platform
+- E-commerce Platform
+- Streaming Platform
+
+For each:
+
+- Requirements
+- Scale Estimation
+- Architecture
+- HA
+- Security
+- DR
+- Cost Optimization
+- Monitoring
+
+=====================================================
+SECTION 15: SRE
+=====================================================
+
+Cover:
+
+- SLI
+- SLO
+- SLA
+- Error Budgets
+- Reliability Engineering
+- Incident Management
+- Postmortems
+- Capacity Planning
+
+Generate:
+
+- 200+ Questions
+- Production Incidents
+- RCA Examples
+
+=====================================================
+SECTION 16: BEHAVIORAL INTERVIEWS
+=====================================================
+
+Generate 200 behavioral questions with STAR answers covering:
+
+- Ownership
+- Leadership
+- Mentoring
+- Conflict Resolution
+- Innovation
+- Automation
+- Incident Response
+- Customer Focus
+
+=====================================================
+SECTION 17: LEARNING ROADMAP
+=====================================================
+
+Provide:
+
+1. 90-Day Preparation Plan
+2. 180-Day FAANG Plan
+3. Weekly Study Schedule
+4. Hands-on Projects
+5. Mock Interview Plan
+6. Top Documentation Links
+7. Top Whitepapers
+8. Top Blogs
+9. Top GitHub Repositories
+10. Top 100 Must-Know Questions
+
+Output should be detailed enough to become a complete interview preparation repository for a 5-year experienced DevOps Engineer targeting Senior DevOps Engineer, Platform Engineer, Infrastructure Engineer, Cloud Engineer, and SRE roles at FAANG/MANGA companies.
+
+Allocate effort as follows:
+
+- Kubernetes: 20%
+- AWS: 15%
+- Azure: 15%
+- Terraform: 10%
+- Linux: 10%
+- CI/CD: 10%
+- Azure DevOps: 5%
+- GitHub Actions: 5%
+- Docker: 3%
+- Jenkins: 3%
+- GitOps: 2%
+- Python: 2%
+
+Prioritize Senior/Staff-Level questions over beginner questions.
+
+Focus heavily on:
+- Production incidents
+- Large-scale systems
+- Multi-region architectures
+- Reliability engineering
+- Platform engineering
+- AKS/EKS internals
+- Networking
+- Security
+- Cost optimization
+- Troubleshooting
+
+Include questions commonly asked by Amazon, Google, Microsoft, Meta, Netflix, Uber, Airbnb, and LinkedIn interviewers.
