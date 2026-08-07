@@ -1,0 +1,583 @@
+Act as a Principal Cloud Architect, Senior DevOps Engineer, AWS Interview Panelist, and Hiring Manager from FAANG/MANGA companies.
+
+I am a DevOps Engineer with 5 years of experience preparing for Senior DevOps Engineer, Platform Engineer, SRE, Cloud Engineer, Infrastructure Engineer, and DevOps Engineer interviews at FAANG/MANGA companies.
+
+Generate a comprehensive README.md document containing AWS interview questions and answers covering beginner, intermediate, advanced, and expert-level concepts.
+
+Requirements:
+
+# README Structure
+
+For each topic:
+
+1. Detailed theory
+2. Frequently asked interview questions
+3. Model interview answers
+4. Follow-up questions interviewers may ask
+5. Real-world production scenarios
+6. Troubleshooting scenarios
+7. Architecture design questions
+8. Cost optimization considerations
+9. Security best practices
+10. Performance optimization
+11. Common mistakes
+12. Hands-on exercises
+13. FAANG-level deep-dive questions
+14. STAR format examples where applicable
+15. AWS documentation links
+
+The answer should explain:
+- What it is
+- Why it exists
+- When to use it
+- When NOT to use it
+- Alternatives
+- Real-world examples
+- Interview tips
+
+---
+
+# AWS Core Fundamentals
+
+Cover:
+
+- Global Infrastructure
+    - Regions
+    - Availability Zones
+    - Edge Locations
+    - Local Zones
+    - Wavelength Zones
+
+- Shared Responsibility Model
+- AWS Organizations
+- AWS Control Tower
+- AWS Well Architected Framework
+- AWS Service Quotas
+
+Include:
+- Interview questions
+- Scenario-based questions
+- Architecture discussions
+
+Documentation Links:
+https://docs.aws.amazon.com/
+
+---
+
+# IAM and Security
+
+Cover:
+
+- IAM Users
+- Groups
+- Roles
+- Policies
+- Permission Boundaries
+- SCPs
+- Resource Policies
+- Trust Relationships
+- Cross Account Access
+- MFA
+- AWS SSO / IAM Identity Center
+- Secrets Manager
+- Parameter Store
+- KMS
+- Certificate Manager
+- CloudHSM
+- Cognito
+- GuardDuty
+- Inspector
+- Security Hub
+- Macie
+- WAF
+- Shield
+- AWS Firewall Manager
+
+Include:
+
+- Least privilege examples
+- Production security architectures
+- Multi-account security strategy
+- Zero Trust designs
+- Security incident response scenarios
+
+FAANG Deep Dive:
+- How KMS works internally
+- Envelope Encryption
+- Key Rotation
+- STS Assume Role Flow
+- IAM Evaluation Logic
+
+Documentation links for every service.
+
+---
+
+# Networking
+
+Cover:
+
+- VPC
+- CIDR
+- Subnets
+- Routing Tables
+- NACL
+- Security Groups
+- IGW
+- NAT Gateway
+- VPC Peering
+- Transit Gateway
+- VPN
+- Direct Connect
+- PrivateLink
+- VPC Endpoints
+- Route53
+- DNS
+- Resolver Rules
+- Hybrid Connectivity
+
+Advanced:
+
+- Multi-region networking
+- Shared VPC models
+- Hub-and-Spoke architectures
+- DNS troubleshooting
+
+Scenarios:
+- Pod cannot reach database
+- Hybrid network connectivity issue
+- High latency investigation
+
+Documentation links included.
+
+---
+
+# EC2
+
+Cover:
+
+- Instance Types
+- EBS
+- EFS
+- Instance Store
+- Placement Groups
+- Launch Templates
+- Auto Scaling Groups
+- Spot Instances
+- Savings Plans
+- Reserved Instances
+
+Advanced:
+
+- Nitro System
+- Hypervisor architecture
+- Boot process
+- Kernel troubleshooting
+
+Scenarios:
+- EC2 performance issues
+- Scaling issues
+- Disk failures
+
+---
+
+# Storage
+
+Cover:
+
+## S3
+
+- Internals
+- Versioning
+- Lifecycle Policies
+- Object Lock
+- Cross Region Replication
+- Multipart Upload
+- Encryption Methods
+- Performance Optimization
+
+## EBS
+
+- Volume Types
+- Snapshots
+- Encryption
+
+## EFS
+
+- Performance Modes
+- Throughput Modes
+
+## FSx
+
+- Windows
+- Lustre
+- NetApp ONTAP
+- OpenZFS
+
+Advanced Scenarios:
+- Petabyte scale storage
+- Backup architecture
+- Disaster recovery
+
+---
+
+# Databases
+
+Cover:
+
+## RDS
+- MySQL
+- PostgreSQL
+- SQL Server
+- Oracle
+
+## Aurora
+- Architecture
+- Replication
+- Global Database
+
+## DynamoDB
+- Internals
+- Partitioning
+- Scaling
+- DAX
+- Streams
+
+## ElastiCache
+
+## Neptune
+
+## Redshift
+
+Interview Focus:
+- Why choose one database over another?
+- CAP theorem
+- Consistency models
+- Multi-region database design
+
+---
+
+# Load Balancing
+
+Cover:
+
+- ALB
+- NLB
+- GWLB
+- Classic ELB
+
+Topics:
+- SSL termination
+- Sticky sessions
+- Health checks
+- WebSockets
+- gRPC support
+
+Scenarios:
+- 500 errors
+- Unhealthy targets
+- Performance bottlenecks
+
+---
+
+# Containers and Kubernetes
+
+Cover:
+
+## ECS
+
+- ECS Architecture
+- ECS vs Kubernetes
+- Fargate
+- Capacity Providers
+
+## EKS
+
+Cover in extreme depth:
+
+- Control Plane
+- Worker Nodes
+- Managed Node Pools
+- Fargate
+- Networking
+- CNI
+- Security
+- IAM Roles for Service Accounts
+- Pod Identity
+- Ingress
+- Load Balancers
+- Storage
+- CSI Drivers
+- Cluster Autoscaler
+- Karpenter
+
+Advanced:
+
+- Kubernetes Architecture
+- Scheduler internals
+- kube-proxy
+- etcd
+- Networking internals
+- DNS
+- CoreDNS
+- Admission Controllers
+- RBAC
+- Secrets Management
+
+Deep Dive:
+
+- How pod networking works
+- Service networking internals
+- Debugging Pending pods
+- OOMKilled pods
+- CrashLoopBackOff
+- NodeNotReady
+- API Server failures
+- ETCD recovery
+
+Include:
+- Practical troubleshooting commands
+- Architecture diagrams in markdown
+
+Documentation links included.
+
+---
+
+# CI/CD and DevOps
+
+Cover:
+
+- CodeCommit
+- CodeBuild
+- CodeDeploy
+- CodePipeline
+- GitHub Actions
+- Jenkins
+- ArgoCD
+- FluxCD
+
+Topics:
+
+- GitOps
+- Progressive Delivery
+- Blue Green
+- Canary
+- Rolling Deployments
+
+Scenarios:
+- Failed deployment
+- Rollback strategy
+- Secret management
+
+---
+
+# Infrastructure as Code
+
+Cover:
+
+- CloudFormation
+- CDK
+- Terraform
+
+Compare:
+
+- Terraform vs CloudFormation
+- CDK vs Terraform
+
+Include:
+- Best practices
+- State management
+- Drift detection
+- Modules
+
+FAANG-level design questions.
+
+---
+
+# Monitoring and Observability
+
+Cover:
+
+- CloudWatch
+- CloudTrail
+- AWS Config
+- X-Ray
+- OpenTelemetry
+- Prometheus
+- Grafana
+
+Advanced:
+- Distributed tracing
+- SLI
+- SLO
+- SLA
+- RED Method
+- USE Method
+
+Scenario-based troubleshooting.
+
+---
+
+# Serverless
+
+Cover:
+
+- Lambda
+- API Gateway
+- EventBridge
+- Step Functions
+- SNS
+- SQS
+- Kinesis
+
+Advanced:
+- Event-driven architectures
+- Retry patterns
+- Idempotency
+- DLQ patterns
+
+Scenarios:
+- Duplicate processing
+- Scaling bottlenecks
+
+---
+
+# Disaster Recovery
+
+Cover:
+
+- Backup strategies
+- Multi-AZ
+- Multi-Region
+- Active-Active
+- Active-Passive
+
+Explain:
+- RTO
+- RPO
+
+Design scenarios:
+- Global SaaS platform
+- Banking application
+- E-commerce platform
+
+---
+
+# Cost Optimization
+
+Cover:
+
+- Cost Explorer
+- Budgets
+- Savings Plans
+- Reserved Instances
+- Spot
+- Storage optimization
+
+Scenario questions:
+- Reduce AWS bill by 40%
+- Identify waste
+
+---
+
+# AWS Architecture Design Interviews
+
+Generate at least 50 detailed design interview questions with answers for:
+
+- Netflix
+- Uber
+- Amazon
+- Airbnb
+- WhatsApp
+- YouTube
+- Trading Platform
+- Banking System
+- Multi-region SaaS
+
+For each design:
+- Requirements
+- Capacity estimation
+- Architecture
+- HA design
+- Security
+- Cost optimization
+- Monitoring
+- Recovery strategy
+
+---
+
+# AWS Troubleshooting Section
+
+Generate 100 troubleshooting scenarios covering:
+
+- IAM
+- EKS
+- ECS
+- EC2
+- Networking
+- Route53
+- RDS
+- DynamoDB
+- S3
+- CloudFront
+- CI/CD
+
+For each scenario:
+
+- Symptom
+- Root Cause
+- Diagnostic Steps
+- Fix
+- Prevention
+
+---
+
+# FAANG-Level System Design and Leadership
+
+Generate questions around:
+
+- Scalability
+- Reliability
+- Automation
+- Platform Engineering
+- SRE Practices
+- Incident Management
+- RCA
+- Blameless Postmortems
+- Capacity Planning
+- Multi-region Failovers
+
+Behavioral Questions:
+
+Generate 100 behavioral questions with model STAR answers for:
+
+- Ownership
+- Leadership
+- Conflict Resolution
+- Incident Management
+- Mentoring
+- Automation
+- Innovation
+- Customer Obsession
+
+---
+
+# Learning Roadmap
+
+At the end provide:
+
+1. 90-Day Study Plan
+2. 6-Month FAANG Roadmap
+3. AWS Certifications Mapping
+4. Hands-on Labs
+5. Mock Interview Plan
+6. Daily Revision Checklist
+7. Most Frequently Asked AWS Questions (Top 200)
+8. Top 50 AWS Whitepapers To Read
+9. Top AWS Blogs To Follow
+10. Important AWS Documentation Links
+
+Format entire output as a professional GitHub README.md with table of contents, collapsible sections, diagrams, markdown formatting, and study checkpoints.
+
+The document should be detailed enough to become a complete AWS interview preparation repository for a 5-year experienced DevOps Engineer targeting Senior DevOps, SRE, Platform Engineer, and Cloud Engineer roles in FAANG/MANGA companies.
+
+NOTE: DO NOT INCLUDE UNNECESSARY STUFF, FOCUS ON INTERVIEW SPECIFIC CONTENT AND COVER EVERY TOPIC IN DEPTH.

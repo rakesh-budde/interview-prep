@@ -1,0 +1,616 @@
+Act as a Microsoft Principal Cloud Architect, Distinguished Engineer, Azure MVP, Principal SRE, Platform Engineering Lead, and FAANG Interviewer.
+
+I am a DevOps Engineer with 5 years of experience preparing for:
+
+- Senior DevOps Engineer
+- Site Reliability Engineer (SRE)
+- Platform Engineer
+- Azure Cloud Engineer
+- Infrastructure Engineer
+- Cloud Architect
+
+Generate a complete GitHub README.md interview preparation repository for Azure.
+
+The repository should contain:
+
+- Beginner to Expert concepts
+- Interview Questions
+- Detailed Answers
+- Follow-up Questions
+- Architecture Discussions
+- Production Troubleshooting
+- Design Exercises
+- Hands-on Labs
+- Leadership Questions
+- System Design Questions
+
+For every service include:
+
+1. What is it?
+2. Why does it exist?
+3. When should it be used?
+4. When should it NOT be used?
+5. Alternatives
+6. Architecture
+7. Internals
+8. Security
+9. Cost Optimization
+10. Performance Optimization
+11. Real Production Use Cases
+12. Troubleshooting
+13. Best Practices
+14. Common Mistakes
+15. Architecture Diagrams
+16. Microsoft Documentation Links
+
+For every interview question provide:
+
+- Basic Answer
+- Intermediate Answer
+- Advanced Answer
+- Expert-Level Discussion
+- Follow-up Questions
+
+Output must be formatted as a professional GitHub README with:
+
+- Table of Contents
+- Study Roadmap
+- Learning Checkpoints
+- Architecture Diagrams
+- Hands-on Labs
+- Mock Interview Section
+
+=================================================================
+SECTION 1: AZURE FUNDAMENTALS
+=================================================================
+
+Cover:
+
+- Azure Global Infrastructure
+- Regions
+- Availability Zones
+- Paired Regions
+- Resource Groups
+- Subscriptions
+- Management Groups
+- Tags
+- Resource Locks
+- Service Limits
+- Azure Resource Manager
+
+Generate:
+
+- Frequently Asked Questions
+- Scenario Questions
+- Design Questions
+
+=================================================================
+SECTION 2: IDENTITY AND SECURITY
+=================================================================
+
+Cover:
+
+Microsoft Entra ID
+
+- Users
+- Groups
+- Dynamic Groups
+- Service Principals
+- Managed Identities
+- Enterprise Applications
+- App Registrations
+- Conditional Access
+- Identity Protection
+
+RBAC
+
+- Built-In Roles
+- Custom Roles
+- Scope Inheritance
+- PIM
+
+Security
+
+- Defender for Cloud
+- Defender for Containers
+- Defender for Servers
+- Sentinel
+- Key Vault
+- Certificates
+- Secrets
+- Managed HSM
+
+Deep Dive:
+
+- OAuth
+- OpenID Connect
+- SAML
+- Service Principal Authentication
+- Managed Identity Internals
+- Token Flow
+- RBAC Evaluation Logic
+
+Generate:
+
+- 30 Questions
+- Security Incident Scenarios
+- Troubleshooting Labs
+
+=================================================================
+SECTION 3: AZURE NETWORKING
+=================================================================
+
+Cover:
+
+- Virtual Networks
+- Subnets
+- NSGs
+- ASGs
+- UDRs
+- Azure Firewall
+- NAT Gateway
+- Load Balancer
+- Application Gateway
+- Front Door
+- Traffic Manager
+- DNS
+- Private Endpoints
+- Service Endpoints
+- DNS Private Resolver
+- Virtual WAN
+
+Hybrid Networking
+
+- VPN Gateway
+- ExpressRoute
+- Virtual WAN
+
+Advanced:
+
+- Hub-and-Spoke
+- Shared Services VNET
+- Landing Zone Networking
+- Multi-Region Networking
+
+Deep Dive:
+
+- Packet Flow
+- DNS Resolution
+- Routing Logic
+- Network Troubleshooting
+
+Generate:
+
+- 40 Questions
+- 10 Troubleshooting Scenarios
+
+Examples:
+
+- AKS can't reach database
+- DNS failure
+- Route issue
+- ExpressRoute outage
+- Private endpoint problems
+
+=================================================================
+SECTION 4: AZURE COMPUTE
+=================================================================
+
+Cover:
+
+- Virtual Machines
+- Availability Sets
+- Availability Zones
+- VMSS
+- Ephemeral Disks
+- Dedicated Hosts
+- Proximity Placement Groups
+
+Deep Dive:
+
+- Hypervisor Architecture
+- VM Boot Process
+- Performance Diagnostics
+
+Generate:
+
+- Scenario Questions
+- Troubleshooting Exercises
+
+=================================================================
+SECTION 5: AZURE STORAGE
+=================================================================
+
+Cover:
+
+- Storage Accounts
+- Blob Storage
+- File Storage
+- Queue Storage
+- Table Storage
+
+Advanced:
+
+- Replication Types
+
+   - LRS
+   - ZRS
+   - GRS
+   - GZRS
+   - RA-GRS
+
+Security:
+
+- SAS
+- Private Endpoints
+- Encryption
+
+Deep Dive:
+
+- Storage Architecture
+- Performance Optimization
+
+Generate:
+
+- Design Questions
+- Troubleshooting Cases
+
+=================================================================
+SECTION 6: AZURE DATABASES
+=================================================================
+
+Cover:
+
+- Azure SQL
+- SQL Managed Instance
+- PostgreSQL
+- MySQL
+- Cosmos DB
+- Redis Cache
+
+Deep Dive:
+
+- Consistency Models
+- Replication
+- Partitioning
+- Failover
+
+Generate:
+
+- 30 Questions
+- Architecture Scenarios
+
+=================================================================
+SECTION 7: AKS (EXTREME DEPTH)
+=================================================================
+
+Cover:
+
+- AKS Control Plane
+- Node Pools
+- System Pools
+- User Pools
+- VMSS
+- Networking
+
+Azure CNI
+
+Azure CNI Overlay
+
+Kubenet
+
+Storage
+
+Ingress
+
+Application Routing
+
+Azure Load Balancer
+
+Application Gateway Ingress Controller
+
+Gateway API
+
+Security
+
+Microsoft Entra Integration
+
+Workload Identity
+
+Managed Identity
+
+Azure Policy
+
+Defender for Containers
+
+Advanced:
+
+- Scheduler Internals
+- Pod Networking
+- Service Networking
+- CoreDNS
+- Kube Proxy
+- etcd
+- Cluster Upgrades
+- Autoscaling
+- Karpenter
+- CSI Drivers
+
+Production Debugging:
+
+- Pending Pods
+- CrashLoopBackOff
+- OOMKilled
+- Network Policies
+- DNS Issues
+- API Server Issues
+- NodeNotReady
+- Disk Pressure
+- Memory Pressure
+
+Generate:
+
+- 10 Questions
+- 5 Troubleshooting Scenarios
+- 5 Design Questions
+
+=================================================================
+SECTION 8: AZURE DEVOPS
+=================================================================
+
+Cover:
+
+- Repos
+- Pipelines
+- Boards
+- Artifacts
+
+Advanced:
+
+- YAML Pipelines
+- Self Hosted Agents
+- Multi Stage Pipelines
+- Environments
+- Deployment Gates
+- Service Connections
+
+Generate:
+
+- CI/CD Troubleshooting Scenarios
+- Pipeline Design Questions
+
+=================================================================
+SECTION 9: TERRAFORM ON AZURE
+=================================================================
+
+Cover:
+
+- Providers
+- Modules
+- Backend
+- State Files
+
+Azure Specific:
+
+- Landing Zones
+- Enterprise Deployments
+- AKS Deployments
+- Networking Deployments
+
+Advanced:
+
+- Drift Detection
+- State Recovery
+- Policy Enforcement
+
+Generate:
+
+- 30 Questions
+- Hands-On Exercises
+
+=================================================================
+SECTION 10: OBSERVABILITY
+=================================================================
+
+Cover:
+
+- Azure Monitor
+- Log Analytics
+- Application Insights
+- Managed Prometheus
+- Managed Grafana
+
+Advanced:
+
+- Distributed Tracing
+- OpenTelemetry
+- Custom Metrics
+- SLI
+- SLO
+- SLA
+
+Generate:
+
+- Incident Scenarios
+- Troubleshooting Labs
+
+=================================================================
+SECTION 11: PLATFORM ENGINEERING
+=================================================================
+
+Cover:
+
+- Internal Developer Platform
+- Self-Service Infrastructure
+- Golden Paths
+- Platform APIs
+- GitOps
+
+Generate:
+
+- Platform Engineering Questions
+- Architecture Interviews
+
+=================================================================
+SECTION 12: DISASTER RECOVERY
+=================================================================
+
+Cover:
+
+- RTO
+- RPO
+- Backup
+- Site Recovery
+- Multi-Region AKS
+- Database Failover
+
+Generate:
+
+- Banking Scenario
+- Airline Scenario
+- E-Commerce Scenario
+- SaaS Scenario
+
+=================================================================
+SECTION 13: COST OPTIMIZATION
+=================================================================
+
+Cover:
+
+- Reservations
+- Savings Plans
+- Spot VMs
+- Rightsizing
+
+Generate:
+
+- Reduce Azure Cost by 40% scenarios
+- Interview Questions
+
+=================================================================
+SECTION 14: SYSTEM DESIGN
+=================================================================
+
+Generate 10 Azure System Design Interview Questions with answers.
+
+Examples:
+
+- Multi Region AKS Platform
+- Enterprise Landing Zone
+- Large Banking Platform
+- Airline Reservation Platform
+- Streaming Platform
+- E-Commerce Platform
+
+For each:
+
+- Requirements
+- Scale
+- Architecture
+- Security
+- Cost
+- HA
+- Monitoring
+- DR
+
+=================================================================
+SECTION 15: AZURE TROUBLESHOOTING
+=================================================================
+
+Generate 200 real-world troubleshooting scenarios covering:
+
+- AKS
+- Networking
+- Azure DevOps
+- Terraform
+- Azure SQL
+- Key Vault
+- Identity
+- Storage
+- DNS
+- Front Door
+- Application Gateway
+- Load Balancer
+
+For each include:
+
+- Symptoms
+- Root Cause
+- Investigation Steps
+- Resolution
+- Prevention
+
+=================================================================
+SECTION 16: MICROSOFT INTERVIEW QUESTIONS
+=================================================================
+
+Generate questions typically asked at:
+
+- Microsoft
+- Amazon
+- Google
+- Meta
+- Netflix
+- Uber
+
+Cover:
+
+- Cloud Design
+- Reliability
+- Automation
+- Scalability
+- Security
+- Platform Engineering
+
+=================================================================
+SECTION 17: BEHAVIORAL QUESTIONS
+=================================================================
+
+Generate 10 behavioral questions with STAR answers covering:
+
+- Ownership
+- Leadership
+- Incident Management
+- Conflict Resolution
+- Mentorship
+- Automation
+- Cost Optimization
+- Customer Focus
+- Reliability Engineering
+
+=================================================================
+SECTION 18: LEARNING PLAN
+=================================================================
+
+Provide:
+
+- Top 20 Azure Interview Questions
+- 90-Day Azure Roadmap
+- 180-Day Senior Engineer Roadmap
+- Weekly Study Plan
+- Hands-On Labs
+- Azure Documentation Links
+- Microsoft Learn Links
+- GitHub Repositories
+- Whitepapers
+- Architecture Center References
+
+The output should be detailed enough to become a complete Azure Interview Preparation Repository for a 5-year DevOps Engineer targeting Senior DevOps Engineer, Platform Engineer, Cloud Engineer, and SRE roles.
+
+Prioritize topics using this weightage:
+
+AKS: 25%
+Azure Networking: 20%
+Identity & Security: 15%
+Terraform: 10%
+Azure DevOps: 10%
+Platform Engineering: 5%
+Observability: 5%
+Storage: 3%
+Databases: 3%
+Compute: 2%
+Cost Optimization: 2%
+
+Focus on real production incidents, troubleshooting, architecture reviews, migration projects, multi-region deployments, hub-spoke networking, private endpoints, RBAC, managed identities, GitOps, and platform engineering.
+
+Target Senior/Staff Engineer level rather than beginner-level certifications.

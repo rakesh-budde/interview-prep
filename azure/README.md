@@ -1,30 +1,69 @@
-# Microsoft Azure Interview Questions - Complete Guide
+# Microsoft Azure Interview Preparation - Complete Guide
 
-> **500+ Azure Interview Questions for Senior DevOps Engineer, SRE, and Platform Engineer roles at FAANG companies**
+> **1000+ Azure Interview Questions for Senior DevOps Engineer, SRE, and Platform Engineer roles at FAANG/MANGA companies**
 
----
-
-## 📋 Table of Contents
-
-- [Quick Reference](#quick-reference)
-- [Azure Fundamentals](#azure-fundamentals)
-- [Identity & Access Management](#identity--access-management)
-- [Networking](#networking)
-- [Compute Services](#compute-services)
-- [Storage Services](#storage-services)
-- [Database Services](#database-services)
-- [Containers & Kubernetes](#containers--kubernetes)
-- [Monitoring & Observability](#monitoring--observability)
-- [Security Services](#security-services)
-- [Governance & Compliance](#governance--compliance)
-- [Troubleshooting Scenarios](#troubleshooting-scenarios)
-- [Architecture Design Questions](#architecture-design-questions)
+**Total Coverage:** 11 comprehensive guides | **Estimated Study Time:** 90 days | **Questions:** 1000+
 
 ---
 
-## Quick Reference
+## 📚 Study Guides by Topic (Weightage-Based)
+
+| Guide | Weightage | Questions | Focus Areas |
+|-------|-----------|-----------|-------------|
+| [AKS & Kubernetes](AKS-KUBERNETES.md) | **25%** | 250+ | Architecture, CNI, Workload Identity, Troubleshooting |
+| [Networking](NETWORKING.md) | **20%** | 200+ | VNet, NSG, Load Balancers, Private Endpoints, Hybrid |
+| [Identity & Security](IDENTITY-SECURITY.md) | **15%** | 150+ | Entra ID, RBAC, Key Vault, Defender, Compliance |
+| [Terraform & Infrastructure](TERRAFORM-INFRASTRUCTURE.md) | **10%** | 120+ | State management, modules, multi-region patterns |
+| [Azure DevOps & CI/CD](AZURE-DEVOPS-CI-CD.md) | **10%** | 100+ | YAML pipelines, GitOps, deployment strategies |
+| [Compute, Storage, Databases](COMPUTE-STORAGE-DATABASES.md) | **8%** | 100+ | VM SKUs, replication types, Cosmos DB, SQL |
+| [Observability & Monitoring](OBSERVABILITY-MONITORING.md) | **5%** | 80+ | Azure Monitor, Log Analytics, SLI/SLO/SLA |
+| [Platform Engineering](PLATFORM-ENGINEERING.md) | **5%** | 60+ | IDP, golden paths, developer experience |
+| [System Design & Troubleshooting](SYSTEM-DESIGN-TROUBLESHOOTING.md) | — | 15+ designs | Multi-region AKS, financial services, 200+ scenarios |
+| [Behavioral & Leadership](BEHAVIORAL-LEADERSHIP.md) | — | 50+ | STAR format, incident management, decision-making |
+| [Learning Resources](LEARNING-RESOURCES.md) | — | — | 90-day roadmap, top 50 questions, certifications |
+
+---
+
+## 🎯 Quick Start (By Experience Level)
+
+### Senior Engineers (5+ years)
+1. Start with [AKS-KUBERNETES.md](AKS-KUBERNETES.md) - Focus on architecture & troubleshooting
+2. Review [SYSTEM-DESIGN-TROUBLESHOOTING.md](SYSTEM-DESIGN-TROUBLESHOOTING.md) - Practice design scenarios
+3. Skim other guides for gaps
+
+### Mid-Level Engineers (2-5 years)
+1. Follow the [90-day study plan](LEARNING-RESOURCES.md)
+2. Complete all hands-on labs
+3. Practice top 50 questions
+
+### Career Changers
+1. Get AZ-104 certification first
+2. Build AKS cluster from scratch (Terraform)
+3. Study guides in weightage order
+
+---
+
+## 🏗️ Architecture Quick Reference
 
 ### Azure Global Infrastructure
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                   AZURE GLOBAL INFRASTRUCTURE                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Geography (Americas)     Geography (Europe)    Geography (APAC) │
+│  ├─ Region: East US       ├─ Region: West EU    ├─ Region: SEA  │
+│  │  ├─ AZ-1               │  ├─ AZ-1            │  ├─ AZ-1      │
+│  │  ├─ AZ-2               │  ├─ AZ-2            │  ├─ AZ-2      │
+│  │  └─ AZ-3               │  └─ AZ-3            │  └─ AZ-3      │
+│  └─ Region: West US       └─ Region: North EU   └─ Region: AUS  │
+│                                                                  │
+│  60+ Regions | 300+ Availability Zones | 190+ Edge Locations    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Azure Resource Hierarchy
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
