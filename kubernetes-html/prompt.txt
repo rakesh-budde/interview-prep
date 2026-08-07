@@ -1,0 +1,569 @@
+Act as a:
+
+- Kubernetes Maintainer
+- CNCF Ambassador
+- Principal Platform Engineer
+- Staff Site Reliability Engineer
+- Kubernetes SIG Contributor
+- Google GKE Engineer
+- Microsoft AKS Engineer
+- Amazon EKS Engineer
+- Netflix Platform Engineer
+
+I am a DevOps Engineer with 5 years of experience preparing for:
+
+- Senior DevOps Engineer
+- Site Reliability Engineer (SRE)
+- Platform Engineer
+- Cloud Infrastructure Engineer
+- Staff Engineer
+
+Generate a complete self-contained HTML Kubernetes Interview Preparation Portal.
+
+Requirements:
+
+- Single HTML File
+- Embedded CSS
+- Embedded JavaScript
+- Dark Theme
+- Responsive Design
+- Sidebar Navigation
+- Search Feature
+- Expandable Sections
+- Progress Tracker
+- Interactive Quizzes
+- Mermaid Diagrams
+- Printable Design
+
+===========================================
+CONTENT DISTRIBUTION
+===========================================
+
+Focus Areas:
+
+50% Kubernetes Internals and Troubleshooting
+
+- System Internals
+- Component Interactions
+- Request Flows
+- Data Flows
+- Production Debugging
+- Failure Scenarios
+- Root Cause Analysis
+- Real Production Incidents
+
+50% Interview Preparation
+
+- Topic-wise Questions
+- Detailed Answers
+- Follow-up Questions
+- Design Questions
+- Whiteboard Questions
+- Scenario Questions
+- Senior-Level Interview Discussions
+
+===========================================
+FOR EVERY TOPIC INCLUDE
+===========================================
+
+1. What problem does it solve?
+2. Why Kubernetes needs it?
+3. Internal Architecture
+4. Internal Workflow
+5. Request Flow
+6. Communication with Other Components
+7. Failure Scenarios
+8. Troubleshooting Strategy
+9. Performance Considerations
+10. Security Considerations
+11. Common Production Issues
+12. Best Practices
+13. Real World Usage
+14. Interview Questions
+15. Follow-up Questions
+16. Senior-Level Discussions
+17. Hands-On Labs
+18. Documentation Links
+
+===========================================
+SECTION 1 - KUBERNETES FUNDAMENTALS
+===========================================
+
+Cover in depth:
+
+- Why Kubernetes Exists
+- Container Orchestration
+- Declarative Model
+- Desired State
+- Current State
+- Reconciliation Pattern
+- Cluster Architecture
+
+Generate:
+
+- Detailed Explanations
+- 50 Interview Questions
+- Top 10 Real Production Examples
+- Top 10 Design Discussions
+
+===========================================
+SECTION 2 - CONTROL PLANE ARCHITECTURE
+===========================================
+
+Cover:
+
+- API Server
+- ETCD
+- Scheduler
+- Controller Manager
+- Cloud Controller Manager
+
+Explain:
+
+- Internal Architecture
+- Communication Flow
+- Data Flow
+- Failure Handling
+- Scaling Mechanisms
+
+Create sequence diagrams showing:
+
+User
+→ API Server
+→ ETCD
+→ Scheduler
+→ Controller
+→ Kubelet
+
+Generate:
+
+- 50 Interview Questions
+- Top 10 Production Scenarios
+- Top 10 Troubleshooting Cases
+
+===========================================
+SECTION 3 - API SERVER INTERNALS
+===========================================
+
+Deep Dive:
+
+- Request Lifecycle
+- Authentication
+- Authorization
+- Admission Controllers
+- Validation
+- Resource Persistence
+
+Explain:
+
+kubectl apply deployment.yaml
+
+step-by-step internally.
+
+Generate:
+
+- 50 Interview Questions
+- Top 10 API Server Failures
+- Top 10 Scaling Challenges
+
+===========================================
+SECTION 4 - ETCD INTERNALS
+===========================================
+
+Cover:
+
+- Raft Consensus
+- Leader Election
+- Quorum
+- Snapshotting
+- WAL
+- Resource Storage
+
+Explain:
+
+How Kubernetes stores:
+
+- Pods
+- Deployments
+- Secrets
+- Services
+
+Generate:
+
+- 50 Interview Questions
+- Top 10 ETCD Production Issues
+- Top 10 Recovery Scenarios
+
+===========================================
+SECTION 5 - SCHEDULER INTERNALS
+===========================================
+
+Cover:
+
+- Scheduling Cycle
+- Binding Cycle
+- Filtering Phase
+- Scoring Phase
+- Preemption
+
+Explain:
+
+Why Pods remain Pending.
+
+Generate:
+
+- 50 Interview Questions
+- Top 10 Scheduling Failures
+- Top 10 Resource Allocation Scenarios
+
+===========================================
+SECTION 6 - CONTROLLER MANAGER
+===========================================
+
+Cover:
+
+- Deployment Controller
+- ReplicaSet Controller
+- Node Controller
+- Endpoint Controller
+- StatefulSet Controller
+
+Explain:
+
+How Reconciliation Loops Work.
+
+Generate:
+
+- 50 Interview Questions
+- Top 10 Controller Failures
+
+===========================================
+SECTION 7 - KUBELET INTERNALS
+===========================================
+
+Cover:
+
+- Node Registration
+- Pod Lifecycle
+- Health Reporting
+- Sync Loop
+
+Explain:
+
+Pod Creation Journey.
+
+Generate:
+
+- 50 Interview Questions
+- Top 10 Kubelet Failures
+
+===========================================
+SECTION 8 - CONTAINER RUNTIME
+===========================================
+
+Cover:
+
+- containerd
+- CRI
+- OCI
+- Namespaces
+- Cgroups
+
+Explain:
+
+How containers are created.
+
+Generate:
+
+- 50 Interview Questions
+- Top 10 Runtime Problems
+
+===========================================
+SECTION 9 - NETWORKING
+===========================================
+
+Cover in extreme depth:
+
+- Kubernetes Networking Model
+- Pod Networking
+- Service Networking
+- DNS
+- kube-proxy
+- CNI
+
+Cover:
+
+- Calico
+- Cilium
+- Azure CNI
+- Azure Overlay
+- AWS VPC CNI
+- Flannel
+
+Explain packet flow for:
+
+- Pod → Pod
+- Pod → Service
+- Pod → External
+- External → Ingress
+
+Generate:
+
+- 100 Interview Questions
+- Top 10 DNS Issues
+- Top 10 Networking Incidents
+- Top 10 Ingress Failures
+- Top 10 CNI Issues
+
+===========================================
+SECTION 10 - SERVICES AND DNS
+===========================================
+
+Cover:
+
+- ClusterIP
+- NodePort
+- LoadBalancer
+- ExternalName
+- EndpointSlice
+- CoreDNS
+
+Explain:
+
+Service Discovery Internals.
+
+Generate:
+
+- 50 Interview Questions
+- Top 10 Service Routing Problems
+
+===========================================
+SECTION 11 - STORAGE
+===========================================
+
+Cover:
+
+- Volumes
+- PV
+- PVC
+- StorageClass
+- CSI Drivers
+
+Explain:
+
+- Dynamic Provisioning
+- Mount Lifecycle
+- Volume Attachment
+
+Generate:
+
+- 50 Interview Questions
+- Top 10 Storage Failures
+
+===========================================
+SECTION 12 - SECURITY
+===========================================
+
+Cover:
+
+- Authentication
+- Authorization
+- Admission Control
+- RBAC
+- Service Accounts
+- Secrets
+- Network Policies
+
+Explain API Access Flow:
+
+Authentication
+→ Authorization
+→ Admission Controller
+
+Generate:
+
+- 100 Interview Questions
+- Top 10 Security Incidents
+
+===========================================
+SECTION 13 - OBSERVABILITY
+===========================================
+
+Cover:
+
+- Prometheus
+- Grafana
+- OpenTelemetry
+- Loki
+- AlertManager
+
+Explain metrics architecture.
+
+Generate:
+
+- 50 Interview Questions
+- Top 10 Monitoring Incidents
+
+===========================================
+SECTION 14 - AUTOSCALING
+===========================================
+
+Cover:
+
+- HPA
+- VPA
+- Cluster Autoscaler
+- Karpenter
+
+Explain:
+
+Internal Decision Making.
+
+Generate:
+
+- 50 Interview Questions
+- Top 10 Scaling Problems
+
+===========================================
+SECTION 15 - AKS
+===========================================
+
+Deep Dive:
+
+- AKS Architecture
+- Azure CNI
+- Azure CNI Overlay
+- Workload Identity
+- Managed Identity
+- Node Pools
+- Upgrade Architecture
+
+Generate:
+
+- 100 AKS Interview Questions
+- Top 10 AKS Production Issues
+- Top 10 Upgrade Failures
+- Top 10 Networking Issues
+
+===========================================
+SECTION 16 - EKS
+===========================================
+
+Deep Dive:
+
+- EKS Architecture
+- VPC CNI
+- IRSA
+- Fargate
+- Node Groups
+
+Generate:
+
+- 100 EKS Interview Questions
+- Top 10 EKS Production Issues
+
+===========================================
+SECTION 17 - TROUBLESHOOTING MASTERY
+===========================================
+
+Generate the 50 most important incidents:
+
+- Pending Pods
+- CrashLoopBackOff
+- OOMKilled
+- ImagePullBackOff
+- NodeNotReady
+- DNS Failures
+- ETCD Problems
+- API Server Failures
+- CNI Problems
+- PVC Problems
+
+For every scenario provide:
+
+- Symptoms
+- Root Cause
+- Architecture Impact
+- Investigation Process
+- kubectl Commands
+- Linux Commands
+- Resolution
+- Prevention
+
+===========================================
+SECTION 18 - SYSTEM DESIGN
+===========================================
+
+Generate the Top 25 Kubernetes Design Interviews:
+
+Examples:
+
+- Multi-Tenant Platform
+- Internal Developer Platform
+- SaaS Platform
+- Banking System
+- Streaming Platform
+- Airline Reservation Platform
+
+For every design include:
+
+- Requirements
+- Scale Estimation
+- Architecture
+- Networking Design
+- Security Design
+- Storage Design
+- Observability
+- DR Strategy
+
+===========================================
+SECTION 19 - FAANG QUESTIONS
+===========================================
+
+Generate:
+
+- Top 100 Kubernetes Questions
+- Top 50 Senior Engineer Questions
+- Top 25 Staff Engineer Questions
+
+Focus on:
+
+- Internals
+- Networking
+- Scheduling
+- Storage
+- Security
+- Scalability
+- Troubleshooting
+
+===========================================
+SECTION 20 - LEARNING ROADMAP
+===========================================
+
+Generate:
+
+- 30-Day Plan
+- 60-Day Plan
+- 90-Day Plan
+
+Include:
+
+- Official Documentation
+- CNCF Resources
+- Kubernetes Source Code References
+- Books
+- Blogs
+- GitHub Repositories
+
+FINAL REQUIREMENT:
+
+Explain every topic deeply enough that the reader can:
+
+- Troubleshoot production clusters
+- Design Kubernetes platforms
+- Pass Senior DevOps interviews
+- Pass Senior SRE interviews
+- Pass Staff Platform Engineer interviews
+- Understand Kubernetes internals
+- Read Kubernetes source code
+- Operate AKS, EKS, and GKE in production
