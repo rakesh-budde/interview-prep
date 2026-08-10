@@ -576,8 +576,7 @@ At the end provide:
 9. Top AWS Blogs To Follow
 10. Important AWS Documentation Links
 
-Format entire output as a professional GitHub README.md with table of contents, collapsible sections, diagrams, markdown formatting, and study checkpoints.
+Format entire output as a professional GitHub README.md per section with table of contents, collapsible sections, diagrams, markdown formatting, and study checkpoints.
 
 The document should be detailed enough to become a complete AWS interview preparation repository for a 5-year experienced DevOps Engineer targeting Senior DevOps, SRE, Platform Engineer, and Cloud Engineer roles in FAANG/MANGA companies.
 
-NOTE: DO NOT INCLUDE UNNECESSARY STUFF, FOCUS ON INTERVIEW SPECIFIC CONTENT AND COVER EVERY TOPIC IN DEPTH.
