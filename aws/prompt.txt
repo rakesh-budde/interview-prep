@@ -172,7 +172,7 @@ Explain:
 
 Include:
 
-- 100+ Networking Interview Questions
+- Frequently asked Networking Interview Questions
 
 ---
 
@@ -551,7 +551,7 @@ Prepare for:
 
 Generate:
 
-- Top 100 Frequently Asked Questions
+- Frequently Asked Questions
 - Sample Answers
 - Strong Candidate Answers
 - Weak Candidate Answers

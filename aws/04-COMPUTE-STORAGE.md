@@ -1,340 +1,1131 @@
-# Sections 4–5: AWS Compute & Storage
+# AWS COMPUTE & STORAGE — Deep Dive Interview Preparation
 
-> Part of the [AWS Interview Preparation Roadmap](./README.md). Covers **Section 4: AWS Compute** and **Section 5: AWS Storage**.
+> **Scope:** Sections 4–5 of 20 | Beginner → Expert progression | FAANG-level depth  
+> **Coverage:** EC2 internals, Nitro, ASG, Spot, Lambda, Fargate, S3, EBS, EFS, FSx, 60+ Q&A
 
 ---
 
-# SECTION 4: AWS COMPUTE
+## Table of Contents
 
-## 4.1 Concept Overview
+**Section 4: Compute**
+1. [EC2 Instance Types & Families](#1-ec2-instance-types--families)
+2. [Nitro System Architecture](#2-nitro-system-architecture)
+3. [EC2 Provisioning & Boot Process](#3-ec2-provisioning--boot-process)
+4. [Placement Groups](#4-placement-groups)
+5. [Auto Scaling Groups & Launch Templates](#5-auto-scaling-groups--launch-templates)
+6. [Spot Instances](#6-spot-instances)
+7. [Reserved Instances & Savings Plans](#7-reserved-instances--savings-plans)
+8. [AWS Lambda Deep Dive](#8-aws-lambda-deep-dive)
+9. [AWS Fargate & App Runner](#9-aws-fargate--app-runner)
 
-Compute is where you prove you understand the trade-off ladder: **EC2 (full control) → containers (ECS/EKS) → serverless (Lambda/Fargate)**. FAANG interviews probe *why* you'd pick each, how EC2 provisioning and the Nitro system actually work, and how autoscaling behaves under real load and failure.
+**Section 5: Storage**
+10. [Amazon S3 Deep Dive](#10-amazon-s3-deep-dive)
+11. [Amazon EBS Deep Dive](#11-amazon-ebs-deep-dive)
+12. [Amazon EFS](#12-amazon-efs)
+13. [Amazon FSx](#13-amazon-fsx)
+14. [Storage Gateway](#14-storage-gateway)
 
-**Beginner → Expert ladder:**
-- **Beginner:** EC2 instance families, EBS, AMIs, security groups.
-- **Intermediate:** Auto Scaling Groups, launch templates, Spot, RIs/Savings Plans, placement groups.
-- **Advanced:** Nitro architecture, IMDSv2, warm pools, mixed-instances ASGs, lifecycle hooks.
-- **Expert:** Static stability under AZ loss, capacity-optimized Spot with interruption handling, Graviton migration economics.
+**Common**
+15. [Interview Questions & Answers](#15-interview-questions--answers)
+16. [Troubleshooting Scenarios](#16-troubleshooting-scenarios)
+17. [Production Best Practices](#17-production-best-practices)
+18. [Documentation Links](#18-documentation-links)
 
-## 4.2 Architecture
+---
 
-### EC2 on the Nitro System
+## 1. EC2 Instance Types & Families
+
+### Beginner Foundation
+
+An **EC2 instance** is a virtual machine running in the AWS cloud. The instance type determines vCPU count, memory, storage, and network performance.
+
+**Instance naming: `family + generation + [attribute] + size`**
+
+Example: `m7g.4xlarge`
+- `m` = General purpose family
+- `7` = 7th generation
+- `g` = Graviton (AWS ARM processor)
+- `4xlarge` = 16 vCPU, 64 GiB RAM
+
+### Intermediate Mechanics — Instance Families
+
+| Family | Prefix | vCPU:RAM | Best for |
+|---|---|---|---|
+| General Purpose | m, t | 1:4 | Web servers, app servers, dev/test |
+| Compute Optimized | c | 1:2 | Batch, HPC, gaming servers |
+| Memory Optimized | r, x, z | 1:8 to 1:32 | In-memory databases, SAP HANA |
+| Storage Optimized | i, d, h | High local NVMe | NoSQL, data warehouses, HDFS |
+| Accelerated Computing | p, g, inf, trn | GPU | ML training, inference, video encoding |
+| T-series (burstable) | t | Variable | Variable CPU workloads |
+
+**T-series burstable deep dive:**
+
+T-series instances earn CPU credits when running below baseline (e.g., `t3.medium` baseline = 20% of 2 vCPUs). When above baseline, credits are consumed. `t3` and newer are **unlimited** by default — burst indefinitely but surplus credits are charged. This surprises teams whose dev `t3.small` runs CPU-intensive jobs for days.
+
+```bash
+# Check CPU credit balance
+aws cloudwatch get-metric-statistics \
+  --namespace AWS/EC2 \
+  --metric-name CPUCreditBalance \
+  --dimensions Name=InstanceId,Value=i-0abc123 \
+  --start-time $(date -d '1 hour ago' -u +%Y-%m-%dT%H:%M:%SZ) \
+  --end-time $(date -u +%Y-%m-%dT%H:%M:%SZ) \
+  --period 300 --statistics Average
+```
+
+**Graviton (ARM64) instances:**
+
+`m7g`, `c7g`, `r7g` — AWS-designed ARM chips. 20–40% better price/performance than equivalent x86. Requires ARM64-compiled code. Most modern runtimes (Java, Go, Python, Node.js, .NET) support ARM64 natively. Docker images must be multi-arch.
+
+```bash
+# Build multi-arch container image
+docker buildx build --platform linux/amd64,linux/arm64 -t my-app:latest --push .
+```
+
+### Advanced Engineering
+
+**Network bandwidth is per-instance-type:** `m5.large` = 1.25 Gbps; `m5.24xlarge` = 25 Gbps. EBS bandwidth is separate from network bandwidth — heavy EBS I/O can saturate the EBS throughput cap without affecting network. Monitor both `NetworkIn/Out` and `EBSWriteBytes` metrics separately.
+
+---
+
+## 2. Nitro System Architecture
+
+### Beginner Foundation
+
+The **Nitro System** is AWS's custom hardware and software that offloads virtualization functions (networking, storage, security) to dedicated Nitro hardware cards, giving customer instances near bare-metal performance with < 1% overhead.
+
+### Intermediate Mechanics
 
 ```mermaid
 graph TB
-    subgraph NitroHost["Nitro Bare-Metal Host"]
+    subgraph NitroHost["Physical Nitro Host"]
         subgraph Guest["Customer EC2 Instance"]
-            OS["Guest OS + Workload"]
+            OS["Guest OS + Workload (100% of vCPUs)"]
         end
-        NH["Nitro Hypervisor<br/>(thin, KVM-based)"]
-        subgraph NitroCards["Nitro Cards (offload)"]
-            VPCCard["VPC networking (ENA)"]
-            EBSCard["EBS (NVMe)"]
-            SecChip["Nitro Security Chip<br/>(hardware root of trust)"]
+        NH["Nitro Hypervisor (thin KVM, CPU/memory only)"]
+        subgraph Cards["Dedicated Nitro Cards"]
+            VPC["Nitro VPC Card (ENA) — hardware packet processing"]
+            EBS["Nitro EBS Card (NVMe) — storage I/O without CPU"]
+            Sec["Nitro Security Chip — hardware root of trust, blocks operator access"]
         end
     end
-    Guest --> NH
-    NH --> NitroCards
-    VPCCard --> VPC["VPC Network"]
-    EBSCard --> EBS["EBS Volumes"]
+    OS --> NH
+    NH --> Cards
+    VPC --> Network["AWS VPC Network"]
+    EBS --> Storage["EBS Volumes"]
 ```
 
-### Auto Scaling Group + ELB
+**Nitro Security Chip:** Enforces at hardware level that AWS operators cannot read customer instance memory, storage, or network traffic. This is a cryptographic hardware guarantee, not just a policy.
 
-```mermaid
-graph TB
-    ALB["Application Load Balancer"] --> TG["Target Group (health checks)"]
-    TG --> ASG
-    subgraph ASG["Auto Scaling Group (multi-AZ)"]
-        I1["Instance AZ-a"]
-        I2["Instance AZ-b"]
-        I3["Instance AZ-c"]
-    end
-    CW["CloudWatch alarms<br/>(target tracking / step)"] --> ASG
-    LT["Launch Template<br/>(AMI, type, user-data, IMDSv2)"] --> ASG
+**Nitro Enclaves:** Isolated VMs within EC2 for processing sensitive data. No persistent storage, no network, no interactive access. AWS KMS releases keys only to verified Enclave attestation reports. Used for PII processing, HSM operations, ML inference on private data.
+
+**Bare metal instances** (`m5.metal`, `c5.metal`): No hypervisor between OS and hardware. Used for VMware Cloud on AWS (nested virtualization), workloads requiring direct hardware access.
+
+### Advanced Engineering
+
+**EBS lazy loading from AMI snapshots:** When a volume is created from a snapshot, blocks are fetched from S3 on first access (150–200 ms vs < 1 ms for cached blocks). Pre-warm production volumes before traffic:
+
+```bash
+# Pre-warm all blocks on a newly created EBS volume
+sudo fio --filename=/dev/xvda --rw=randread --bs=128k --iodepth=32 \
+  --ioengine=libaio --direct=1 --name=pre-warm --runtime=600
 ```
 
-## 4.3 Core Components
-
-| Component | Purpose |
-|-----------|---------|
-| **Instance families** | `t`/`m` (general), `c` (compute), `r`/`x` (memory), `i`/`d` (storage), `p`/`g`/`inf` (GPU/ML), Graviton (`g` suffix, Arm) |
-| **AMI** | Boot image (kernel, root FS, config) |
-| **EBS** | Network-attached block storage (gp3, io2, st1, sc1) |
-| **Instance Store** | Ephemeral local NVMe (lost on stop/terminate) |
-| **Launch Template** | Versioned instance config for ASG |
-| **Auto Scaling Group** | Maintains desired count across AZs |
-| **Placement Group** | cluster (low latency), spread (HW isolation), partition (large distributed) |
-| **Spot** | Spare capacity, up to ~90% off, 2-min interruption notice |
-| **Reserved / Savings Plans** | 1–3yr commitment discounts |
-| **Dedicated Host** | Physical server for licensing/compliance |
-| **Lambda** | Event-driven FaaS, sub-second billing |
-| **Fargate** | Serverless containers (ECS/EKS) |
-| **App Runner / Beanstalk / Batch** | PaaS / managed batch |
-
-## 4.4 Internal Working
-
-**Nitro system:** AWS offloads networking (ENA), storage (NVMe/EBS), and security to dedicated **Nitro cards**, leaving a thin KVM-based hypervisor with near-bare-metal performance (<1% overhead). The **Nitro Security Chip** is a hardware root of trust that prevents firmware tampering and blocks operator access to customer data.
-
-**EC2 provisioning workflow:** `RunInstances` → capacity allocation in the chosen AZ/subnet → ENI attached → EBS root volume created from AMI snapshot (lazily loaded blocks) → instance boots → user-data/cloud-init runs. `pending → running` state transitions; instance metadata available at `169.254.169.254`.
-
-**IMDSv2:** Session-oriented metadata (PUT to get a token, then GET with token header) mitigates SSRF that plagued IMDSv1. Enforce `HttpTokens=required` and `HttpPutResponseHopLimit=1` so containers can't reach node creds through a proxy.
-
-**Autoscaling internals:** ASG maintains desired capacity; CloudWatch alarms drive **target tracking** (keep CPU at 50%), **step**, or **scheduled** scaling. Lifecycle hooks pause launch/terminate for bootstrap/drain. Health checks (EC2 + ELB) replace unhealthy instances. Warm pools pre-initialize instances for faster scale-out.
-
-**Spot mechanics:** Spot instances come from spare capacity; a 2-minute interruption notice arrives via IMDS/EventBridge when AWS reclaims. `capacity-optimized` allocation reduces interruptions; diversify across instance types/AZs.
-
-## 4.5 Real-World Use Cases
-
-- **Stateless web tier:** ASG + ALB + target tracking; Spot for cost with On-Demand baseline.
-- **Batch/ML:** AWS Batch or EKS with Spot + checkpointing.
-- **Event glue:** Lambda for S3/SQS/EventBridge-driven processing (no servers).
-
-## 4.6 Important AWS Services
-
-EC2, EBS, EFS, Auto Scaling, ELB, Launch Templates, Spot/Savings Plans, Nitro, Lambda, Fargate, App Runner, Elastic Beanstalk, AWS Batch, Compute Optimizer.
-
-## 4.7 Common Interview Questions
-
-1. **When EC2 vs Lambda vs Fargate?** EC2 for full control/long-running/special hardware; Fargate for containers without node management; Lambda for short, event-driven, spiky workloads.
-2. **Spot vs On-Demand vs Reserved?** Spot = cheapest, interruptible; On-Demand = flexible, pay-as-you-go; Reserved/Savings Plans = discount for commitment.
-3. **EBS vs Instance Store?** EBS persists and is network-attached; instance store is ephemeral local NVMe.
-4. **gp3 vs gp2?** gp3 decouples IOPS/throughput from size and is ~20% cheaper.
-5. **How does ASG decide to scale?** CloudWatch metrics + scaling policy (target tracking/step/scheduled).
-6. **Placement groups?** Cluster (low latency, same rack), spread (isolate across HW), partition (distributed like HDFS/Cassandra).
-
-## 4.8 Advanced Interview Questions
-
-1. **How do you run Spot safely for production?** Diversified mixed-instances ASG, capacity-optimized allocation, interruption handler that drains/reschedules, On-Demand base capacity for the floor.
-2. **Graviton migration trade-offs?** Arm64 gives ~40% better price/perf but requires multi-arch builds and dependency validation.
-3. **Warm pools vs fast scaling?** Warm pools keep pre-initialized stopped instances to cut launch time for slow-booting apps.
-4. **Lambda cold starts — mitigation?** Provisioned concurrency, smaller packages, keep-warm, SnapStart (Java), avoid VPC-attach latency where possible (now much improved with Hyperplane ENIs).
-
-## 4.9 FAANG-Level Deep Dive Questions
-
-1. **Design autoscaling for a 100x traffic spike (flash sale).** Pre-scale via scheduled scaling + predictive scaling, warm pools, ALB pre-warm (or use NLB), Spot+On-Demand mix, SQS buffering, and graceful degradation.
-2. **Achieve static stability under AZ failure.** Provision N+1 capacity across 3 AZs so losing one AZ needs no new launches; don't depend on control-plane launches during the event.
-3. **Explain how Nitro enables bare-metal and enclaves.** Offload cards + security chip allow `.metal` instances and Nitro Enclaves (isolated compute for secrets/PII with no operator access).
-
-## 4.10 Troubleshooting Scenarios
-
-- **Instances flapping in ASG:** Health check grace too short vs app boot time; or failing ELB health checks.
-- **`InsufficientInstanceCapacity`:** AZ/type capacity shortage; diversify types/AZs, use capacity reservations.
-- **Spot mass interruption:** Concentrated in one pool; diversify + capacity-optimized.
-- **High cross-AZ cost:** Chatty instances split across AZs; co-locate or use topology-aware routing.
-
-## 4.11 Production Best Practices
-
-- Immutable AMIs (baked via Packer/EC2 Image Builder); no in-place patching.
-- IMDSv2 required, hop limit 1; least-privilege instance roles.
-- Multi-AZ ASGs, N+1 capacity, lifecycle hooks for graceful drain.
-- Prefer managed compute (Fargate/Lambda) to reduce ops surface.
-
-## 4.12 Security Considerations
-
-- Instance roles (no static keys); IMDSv2; SSM Session Manager instead of SSH.
-- Encrypt EBS by default (KMS); patch via SSM Patch Manager or immutable AMIs.
-- Nitro Enclaves for sensitive data isolation.
-
-## 4.13 Cost Optimization Strategies
-
-- Right-size with Compute Optimizer; adopt Graviton; gp3 over gp2.
-- Savings Plans for steady baseline; Spot for fault-tolerant/batch.
-- Turn off non-prod off-hours; delete idle EIPs/unattached EBS.
-
-## 4.14 Sample Answers
-
-> **"How would you cut compute costs 40% without hurting reliability?"** *"First, Compute Optimizer to right-size and move to Graviton where compatible — often 20–40% on its own. Second, a Compute Savings Plan covering the steady baseline, with Spot (capacity-optimized, diversified) for stateless and batch tiers backed by an On-Demand floor. Third, gp3 volumes and off-hours schedules for non-prod. I'd validate reliability with N+1 multi-AZ capacity and Spot interruption handling so cost cuts never reduce availability."*
-
-## 4.15 Follow-up Questions Interviewers Ask
-
-- "How do you handle a Spot interruption mid-request?"
-- "What breaks when you move from EC2 to Fargate?"
-- "How do predictive and target-tracking scaling differ?"
-
-## 4.16 AWS Documentation Links
-
-- EC2: https://docs.aws.amazon.com/ec2/
-- Nitro: https://aws.amazon.com/ec2/nitro/
-- Auto Scaling: https://docs.aws.amazon.com/autoscaling/ec2/userguide/
-- Lambda: https://docs.aws.amazon.com/lambda/latest/dg/
-- Fargate: https://docs.aws.amazon.com/AmazonECS/latest/userguide/what-is-fargate.html
-
-## 4.17 Hands-On Labs
-
-1. Build a mixed-instances ASG (Spot+On-Demand) behind an ALB with target tracking; simulate Spot interruption.
-2. Bake an AMI with EC2 Image Builder; roll it out via instance refresh.
-3. Enforce IMDSv2 org-wide via SCP; verify credential access from a pod is blocked.
-
-## 4.18 Comparison with Azure and GCP
-
-| Concept | AWS | Azure | GCP |
-|---------|-----|-------|-----|
-| VM | EC2 | Virtual Machine | Compute Engine |
-| Scale set | Auto Scaling Group | VM Scale Set | Managed Instance Group |
-| Spot | Spot Instances | Spot VMs | Spot/Preemptible VMs |
-| Serverless containers | Fargate | Container Apps / ACI | Cloud Run |
-| FaaS | Lambda | Azure Functions | Cloud Functions |
-| Arm chips | Graviton | Cobalt / Ampere | Tau T2A (Arm) |
-| Commit discount | Savings Plans / RI | Reserved Instances / Savings Plans | CUDs |
-
-**Key differences:** AWS's Nitro offload is the deepest hardware virtualization story; Graviton is the most mature cloud Arm option. Lambda's ecosystem and event-source integrations are broader than Functions/Cloud Functions.
+AWS Fast Snapshot Restore (FSR) pre-initializes blocks — eliminates warm-up latency at extra cost (~$0.75/AZ/hour enabled).
 
 ---
 
-# SECTION 5: AWS STORAGE
+## 3. EC2 Provisioning & Boot Process
 
-## 5.1 Concept Overview
+### Intermediate Mechanics
 
-Storage interviews test whether you can match a workload to the right primitive — **object (S3)**, **block (EBS)**, **file (EFS/FSx)** — and reason about durability, consistency, replication, and cost tiers. S3's 11-nines durability and lifecycle economics are perennial favorites.
+**`RunInstances` control plane flow:**
 
-**Beginner → Expert ladder:**
-- **Beginner:** S3 buckets/objects, EBS volumes, storage classes.
-- **Intermediate:** Versioning, lifecycle policies, encryption modes, EFS vs EBS.
-- **Advanced:** CRR/SRR, Object Lock/WORM, multipart, S3 request-rate scaling, FSx variants.
-- **Expert:** Durability math, DR patterns (RTO/RPO), petabyte data-lake tiering, strong-consistency implications.
+1. **Capacity check:** Is the requested instance type available in the specified AZ? No → `InsufficientInstanceCapacity`.
+2. **Scheduler:** Selects a Nitro host with capacity.
+3. **ENI creation:** Private IP assigned from subnet CIDR; security groups attached.
+4. **EBS root volume:** Created from AMI snapshot (lazy loading).
+5. **Boot:** Nitro hypervisor starts the VM; UEFI/BIOS runs.
+6. **IMDS available** at `169.254.169.254`.
+7. **User data:** `cloud-init` / Windows EC2Launch executes user-data.
+8. **Status checks:** System (host health) and instance (OS reachability) begin.
 
-## 5.2 Architecture
+**Status checks:**
 
-```mermaid
-graph TB
-    subgraph S3["S3 (regional, 11 9s durability)"]
-        Obj["Object + metadata"]
-        Obj -->|replicated| AZa["AZ-a copies"]
-        Obj -->|replicated| AZb["AZ-b copies"]
-        Obj -->|replicated| AZc["AZ-c copies"]
-    end
-    S3 -->|CRR async| S3B["S3 bucket (other Region)"]
-    subgraph Block["EBS (AZ-scoped block)"]
-        Vol["gp3 / io2 volume"] --> Snap["Snapshot → S3 (Region)"]
-    end
-    subgraph File["Shared file"]
-        EFS["EFS (multi-AZ NFS)"]
-        FSx["FSx (Lustre/ONTAP/Windows/OpenZFS)"]
-    end
+| Check | Monitors | If failing | Action |
+|---|---|---|---|
+| System status | Underlying Nitro host hardware | AWS host issue | Auto Recovery (moves to new host) |
+| Instance status | OS reachability, IMDS health | OS crash, OOM, disk full | Your intervention (stop/start, SSM) |
+
+```bash
+# Configure auto-recovery on system check failure
+aws cloudwatch put-metric-alarm \
+  --alarm-name "AutoRecover-i-0abc123" \
+  --metric-name StatusCheckFailed_System \
+  --namespace AWS/EC2 \
+  --dimensions Name=InstanceId,Value=i-0abc123 \
+  --statistic Minimum --period 60 --evaluation-periods 2 --threshold 1 \
+  --comparison-operator GreaterThanOrEqualToThreshold \
+  --alarm-actions "arn:aws:automate:us-east-1:ec2:recover"
 ```
-
-## 5.3 Core Components
-
-| Service | Type | Durability/HA | Use |
-|---------|------|---------------|-----|
-| **S3** | Object | 11 9s, multi-AZ | Data lake, backups, static assets |
-| **S3 classes** | Standard, IA, One Zone-IA, Glacier Instant/Flexible/Deep Archive, Intelligent-Tiering | varies | Cost tiering |
-| **EBS** | Block | AZ-scoped, replicated in-AZ | Boot/data volumes |
-| **Instance Store** | Block | Ephemeral | Scratch/cache |
-| **EFS** | File (NFS) | Multi-AZ | Shared POSIX FS |
-| **FSx** | File | varies | Windows/Lustre HPC/ONTAP/OpenZFS |
-| **Storage Gateway** | Hybrid | — | On-prem ↔ AWS |
-
-## 5.4 Internal Working
-
-**S3 durability (11 nines):** Each object is redundantly stored across **≥3 AZs** (except One Zone-IA). AWS uses erasure coding and continuous integrity checks (checksums, background repair). 99.999999999% durability means for 10M objects you'd statistically lose one object every ~10,000 years.
-
-**Strong consistency:** Since Dec 2020, S3 provides **read-after-write and list consistency** for all requests — no more stale-read caveats. Still, cross-Region replication (CRR) is **asynchronous** (eventual at the destination).
-
-**Request-rate scaling:** S3 scales to **3,500 PUT/COPY/POST/DELETE and 5,500 GET/HEAD per second per prefix**. Parallelize across prefixes for higher throughput; key naming no longer needs random prefixes (auto-partitioning handles it).
-
-**Multipart upload:** Files >100 MB should use multipart (required >5 GB). Parts upload in parallel, retried independently, then combined — improves throughput and resilience.
-
-**EBS internals:** Volumes are replicated within an AZ; snapshots are incremental block-level backups stored in S3 (Region-durable). gp3 delivers a 3,000 IOPS / 125 MB/s baseline independent of size; io2 Block Express reaches 256k IOPS / sub-ms.
-
-**Encryption modes:** SSE-S3 (AWS-managed keys), SSE-KMS (customer-managed CMK, auditable, key policies), SSE-C (customer-supplied keys). Default bucket encryption is now on by default (SSE-S3).
-
-## 5.5 Real-World Use Cases
-
-- **Data lake:** S3 + Intelligent-Tiering + lifecycle to Glacier; queried by Athena/Redshift Spectrum.
-- **Backups/DR:** EBS snapshots + AMIs cross-Region copy; S3 CRR for object DR.
-- **Shared config/ML:** EFS for POSIX sharing across pods; FSx for Lustre for HPC.
-
-## 5.6 Important AWS Services
-
-S3, S3 Glacier, EBS, EFS, FSx (Windows/Lustre/ONTAP/OpenZFS), Instance Store, Storage Gateway, AWS Backup, DataSync, Snowball.
-
-## 5.7 Common Interview Questions
-
-1. **S3 storage classes and when?** Standard (hot), IA (infrequent), One Zone-IA (recreatable), Glacier tiers (archive), Intelligent-Tiering (auto-move).
-2. **Is S3 strongly consistent?** Yes, read-after-write and list, since 2020.
-3. **EBS vs EFS vs S3?** Block vs shared file vs object; single-instance vs multi-instance POSIX vs internet-scale objects.
-4. **How does lifecycle save cost?** Auto-transition to cheaper tiers and expire old versions/objects.
-5. **Object Lock?** WORM compliance — prevents deletion for a retention period (governance/compliance mode).
-6. **Cross-Region Replication use?** DR, latency, compliance — async, requires versioning.
-
-## 5.8 Advanced Interview Questions
-
-1. **Explain 11 nines durability.** Redundant multi-AZ erasure-coded storage with continuous integrity repair; math ≈ one object lost per ~10k years per 10M objects.
-2. **How to hit very high S3 throughput?** Parallelize across prefixes and use multipart; each prefix scales independently.
-3. **When One Zone-IA?** Easily recreatable data where single-AZ risk is acceptable (thumbnails, secondary copies) — cheaper.
-4. **Encryption choice for audited PII?** SSE-KMS with a customer-managed CMK for key policies, rotation, and CloudTrail audit.
-
-## 5.9 FAANG-Level Deep Dive Questions
-
-1. **Design petabyte-scale cost-optimized storage.** Intelligent-Tiering for unknown access patterns, lifecycle to Glacier Deep Archive for cold, partition by date prefix, compress (Parquet), and query in place with Athena.
-2. **DR with strict RPO/RTO.** S3 CRR (RPO≈minutes), cross-Region EBS snapshot copies + AMIs, AWS Backup vault lock, pre-created infra as code for fast RTO.
-3. **Consistency implications for a read-heavy pipeline.** Rely on S3 strong consistency for same-Region reads but treat CRR destinations as eventually consistent; don't read-after-write across Regions.
-
-## 5.10 Troubleshooting Scenarios
-
-- **S3 503 SlowDown:** Request rate spikes on a prefix; spread keys/prefixes, add retries with backoff.
-- **EBS volume slow:** Hitting IOPS/throughput ceiling; move to gp3/io2, or check burst-balance exhaustion.
-- **CRR not replicating:** Versioning off, missing IAM role, or replication rule filter mismatch.
-- **AccessDenied on encrypted object:** Missing KMS key permissions in addition to S3 permissions.
-
-## 5.11 Production Best Practices
-
-- Block Public Access on by default; bucket policies + VPC endpoints for private access.
-- Versioning + lifecycle + MFA delete for critical buckets; Object Lock for compliance.
-- Default encryption (SSE-KMS for sensitive); TLS in transit.
-- AWS Backup with vault lock for centralized, immutable backups.
-
-## 5.12 Security Considerations
-
-- Enforce Block Public Access at account level via SCP.
-- Use bucket policies with `aws:SecureTransport` and `aws:SourceVpce` conditions.
-- S3 Access Points for scoped, per-app access; Access Analyzer for external-sharing findings.
-
-## 5.13 Cost Optimization Strategies
-
-- Intelligent-Tiering + lifecycle to Glacier; expire incomplete multipart uploads.
-- Compress/columnar formats for analytics; S3 Storage Lens for visibility.
-- Delete orphaned snapshots/volumes; use gp3.
-
-## 5.14 Sample Answers
-
-> **"A team stores 500 TB of logs in S3 Standard and the bill is huge — fix it."** *"Logs are write-once, read-rarely, so I'd add lifecycle rules: keep 30 days in Standard for active queries, transition to Standard-IA at 30 days, Glacier Flexible at 90, Deep Archive at 180, and expire at the retention limit. For unpredictable access I'd use Intelligent-Tiering. I'd also convert to compressed Parquet so Athena scans less data, and enable Storage Lens to catch regressions. That typically cuts 60–90% with no query-experience loss for recent data."*
-
-## 5.15 Follow-up Questions Interviewers Ask
-
-- "How do you make backups immutable against ransomware?" (Object Lock + Backup Vault Lock).
-- "What's the durability difference of One Zone-IA?"
-- "How do you get 20 GB/s out of S3 for a training job?" (parallel prefixes + FSx for Lustre link).
-
-## 5.16 AWS Documentation Links
-
-- S3: https://docs.aws.amazon.com/AmazonS3/latest/userguide/
-- EBS: https://docs.aws.amazon.com/ebs/latest/userguide/
-- EFS: https://docs.aws.amazon.com/efs/latest/ug/
-- FSx: https://docs.aws.amazon.com/fsx/
-- AWS Backup: https://docs.aws.amazon.com/aws-backup/latest/devguide/
-
-## 5.17 Hands-On Labs
-
-1. Configure lifecycle + Intelligent-Tiering and observe tier transitions/cost.
-2. Enable versioning + Object Lock; attempt to delete a locked object.
-3. Set up CRR between two Regions and verify async replication + KMS re-encryption.
-
-## 5.18 Comparison with Azure and GCP
-
-| Concept | AWS | Azure | GCP |
-|---------|-----|-------|-----|
-| Object | S3 | Blob Storage | Cloud Storage |
-| Block | EBS | Managed Disks | Persistent Disk |
-| File | EFS / FSx | Azure Files / NetApp Files | Filestore |
-| Archive | Glacier tiers | Cool/Archive tiers | Nearline/Coldline/Archive |
-| Object durability | 11 9s (multi-AZ) | LRS/ZRS/GRS options | 11 9s (multi-region option) |
-| Immutability | Object Lock | Immutable blob policies | Bucket Lock / retention |
-
-**Key differences:** Azure exposes replication as explicit SKUs (LRS/ZRS/GRS/RA-GRS); AWS bakes multi-AZ redundancy into S3 and offers CRR separately. GCP Cloud Storage can be multi-regional in a single bucket, unlike S3's per-Region buckets + CRR.
 
 ---
 
-> Next: **[Section 6 — EKS Deep Dive](./06-EKS-DEEP-DIVE.md)**.
+## 4. Placement Groups
+
+**Three strategies:**
+
+**Cluster:** All instances on the same rack (or adjacent racks), same AZ. Lowest inter-node latency (10 Gbps enhanced networking, < 1 ms). Required for HPC, MPI, distributed ML training.
+- Limitation: Must use same instance family. Start all instances simultaneously for best placement. Cannot span AZs.
+
+**Spread:** Each instance on a distinct hardware rack. Maximum 7 instances per AZ. Provides maximum fault isolation for small critical clusters (Kafka brokers, ZooKeeper, leader nodes).
+
+**Partition:** Instances spread across logical partitions (each partition = distinct rack set). Up to 7 partitions per AZ, thousands of instances. Provides partition-ID metadata for HDFS rack-awareness:
+
+```bash
+# Get partition number from within instance
+curl -s http://169.254.169.254/latest/meta-data/placement/partition-number
+```
+
+---
+
+## 5. Auto Scaling Groups & Launch Templates
+
+### Beginner Foundation
+
+**ASG** maintains a desired number of EC2 instances, replaces unhealthy ones, and scales based on demand. **Launch Templates** are versioned configuration blueprints.
+
+### Intermediate Mechanics
+
+**Scaling policy types:**
+
+| Policy | How it works | Best for |
+|---|---|---|
+| Target Tracking | Maintain metric at target (CPU = 50%) | Most workloads — simplest |
+| Step Scaling | Scale by N when alarm crosses threshold | Known load patterns |
+| Scheduled Scaling | Scale at specific times | Predictable cycles (business hours) |
+| Predictive Scaling | ML forecast + proactive scaling | Predictable but variable patterns |
+
+```hcl
+# Target tracking example
+resource "aws_autoscaling_policy" "cpu" {
+  name                   = "cpu-target-tracking"
+  autoscaling_group_name = aws_autoscaling_group.app.name
+  policy_type            = "TargetTrackingScaling"
+
+  target_tracking_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ASGAverageCPUUtilization"
+    }
+    target_value     = 50.0
+    disable_scale_in = false
+  }
+}
+```
+
+**Always use ELB health checks for web application ASGs:**
+```hcl
+resource "aws_autoscaling_group" "app" {
+  health_check_type         = "ELB"  # Not default "EC2"
+  health_check_grace_period = 300
+  target_group_arns         = [aws_lb_target_group.app.arn]
+}
+```
+
+**Lifecycle hooks (graceful shutdown):**
+```bash
+# User-data: signal completion after initialization
+aws autoscaling complete-lifecycle-action \
+  --lifecycle-hook-name warmup-hook \
+  --auto-scaling-group-name my-asg \
+  --lifecycle-action-result CONTINUE \
+  --instance-id $(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+```
+
+**Mixed Instance Policy + Spot:**
+```hcl
+resource "aws_autoscaling_group" "app" {
+  mixed_instances_policy {
+    instances_distribution {
+      on_demand_base_capacity                  = 2
+      on_demand_percentage_above_base_capacity = 20
+      spot_allocation_strategy                 = "capacity-optimized"
+    }
+    launch_template {
+      launch_template_specification {
+        launch_template_id = aws_launch_template.app.id
+        version            = "$Latest"
+      }
+      # Multiple instance types for Spot resilience
+      override { instance_type = "m5.large" }
+      override { instance_type = "m5a.large" }
+      override { instance_type = "m6i.large" }
+      override { instance_type = "c5.xlarge"; weighted_capacity = 2 }
+    }
+  }
+}
+```
+
+### Advanced Engineering
+
+**Static stability under AZ impairment:** If one of 3 AZs fails, 2/3 of instances remain. Set `min_size` so 2 AZs can handle 100% load:
+- 3 AZs, 9 instances desired → 3 per AZ → need 6 minimum to serve full load → `min_size = 6`
+
+**Warm pools:** Pre-initialize instances in stopped state for < 30-second scale-out (vs. 5–10 min cold boot). Cost: stopped instances cost only EBS. Benefit: eliminates scale-out latency for predictable burst events.
+
+**Instance Refresh (rolling update):**
+```bash
+aws autoscaling start-instance-refresh \
+  --auto-scaling-group-name my-asg \
+  --preferences '{"MinHealthyPercentage": 90, "InstanceWarmup": 300}'
+```
+
+---
+
+## 6. Spot Instances
+
+### Beginner Foundation
+
+**Spot Instances** = unused EC2 capacity at up to 90% discount. AWS reclaims with **2-minute notice**. Viable for production with stateless workloads, multiple instance types, and graceful interruption handling.
+
+**Interruption rates:** Typically 1–5% of instance-hours. Varies by instance type, AZ, and time. Check Spot Interruption Advisor in the EC2 console.
+
+### Intermediate Mechanics
+
+**Handle interruptions via IMDS and EventBridge:**
+```bash
+# Poll for interruption notice from within instance (every 5 seconds)
+while true; do
+  TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" \
+    -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+  NOTICE=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
+    http://169.254.169.254/latest/meta-data/spot/instance-action 2>&1)
+  if echo "$NOTICE" | grep -q "terminate"; then
+    echo "Spot interruption incoming! Graceful shutdown..."
+    # Checkpoint state, drain connections, deregister from LB
+    break
+  fi
+  sleep 5
+done
+```
+
+**Spot allocation strategies:**
+- `capacity-optimized`: Selects pools with most available capacity → lowest interruption risk. **Recommended for production.**
+- `price-capacity-optimized`: Balance between price and capacity. AWS recommended default.
+- `lowest-price`: Highest interruption risk (all customers compete for cheapest pool).
+
+**Always diversify instance types:** Specify 5+ types with similar vCPU/memory profiles. If one pool is exhausted, ASG/EC2 Fleet uses another.
+
+### Advanced Engineering
+
+**Spot with Karpenter (EKS):** Karpenter automatically handles Spot interruptions by pre-provisioning replacement nodes and draining the interrupted node:
+
+```yaml
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: spot-workers
+spec:
+  template:
+    spec:
+      requirements:
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["spot"]
+        - key: kubernetes.io/arch
+          operator: In
+          values: ["amd64", "arm64"]
+      nodeClassRef:
+        name: default
+  disruption:
+    consolidationPolicy: WhenUnderutilized
+    budgets:
+      - nodes: "20%"  # Never disrupt more than 20% of nodes simultaneously
+```
+
+---
+
+## 7. Reserved Instances & Savings Plans
+
+### Intermediate Mechanics
+
+**Savings Plans (preferred):**
+
+| Plan Type | Commitment | Flexibility |
+|---|---|---|
+| Compute Savings Plans | $/hr of any EC2/Lambda/Fargate | Any family, region, OS — most flexible |
+| EC2 Instance Savings Plans | $/hr of specific family in region | Any OS, size in that family |
+| SageMaker Savings Plans | $/hr of SageMaker | Any SageMaker instance |
+
+**Purchasing strategy:**
+1. Use Cost Explorer → Savings Plans recommendations.
+2. Cover 70–80% of stable baseline (not peak).
+3. Use Spot for variable/bursty above baseline.
+4. Purchase Compute Savings Plans (most flexible) over Reserved Instances (more restrictive).
+
+```bash
+# Get Compute SP recommendation
+aws savingsplans get-savings-plans-purchase-recommendation \
+  --savings-plans-type COMPUTE_SP \
+  --term-in-years ONE_YEAR \
+  --payment-option PARTIAL_UPFRONT \
+  --lookback-period-in-days SIXTY_DAYS
+```
+
+**Organization sharing:** Savings Plans and RIs in any member account apply to usage across the entire Organization (consolidated billing). Cannot restrict sharing per-account without opting out of RI sharing.
+
+---
+
+## 8. AWS Lambda Deep Dive
+
+### Beginner Foundation
+
+**Lambda** = event-driven FaaS. Upload code → configure trigger → Lambda executes on-demand. Pay per millisecond of execution. No servers to manage.
+
+**Key limits:** 15 min max duration, 10 GB memory, 10 GB container image, 6 MB sync payload, 256 KB async payload, 1,000 concurrent executions/Region (default).
+
+### Intermediate Mechanics
+
+**Cold start anatomy:**
+
+```mermaid
+sequenceDiagram
+    participant Trigger as Event Source
+    participant Lambda as Lambda Service
+    participant VM as Firecracker microVM
+    participant Code as Function Code
+
+    Trigger->>Lambda: Invoke
+    Lambda->>VM: Create new microVM (cold start only)
+    VM->>VM: Download & unpack code package
+    VM->>Code: Start runtime (JVM/Python/Node interpreter)
+    Code->>Code: Run global initialization (SDK clients, DB pools)
+    Code->>Code: Execute handler
+    Code-->>Trigger: Response
+    Note over VM: Warm for ~5-15 min; next invoke skips all above
+```
+
+**Cold start mitigation:**
+
+| Cause | Solution |
+|---|---|
+| Java/Spring (3+ s) | Lambda SnapStart (snapshots init JVM) |
+| Large package size | Reduce deps, use Lambda Layers |
+| Slow global init | Move SDK clients to global scope |
+| High p99 / spiky load | Provisioned Concurrency |
+
+**Global scope optimization (critical):**
+```python
+import boto3
+
+# Global scope: runs ONCE per execution environment
+dynamodb = boto3.resource('dynamodb')  # SDK initialization ~50ms
+table = dynamodb.Table('users')
+
+def handler(event, context):
+    # Per-invocation: reuses initialized client
+    return table.get_item(Key={'user_id': event['user_id']})['Item']
+```
+
+**VPC Lambda considerations:** Lambda in VPC routes traffic via your NAT Gateway (for internet) or VPC Endpoints (for AWS services). Ensure Interface Endpoints for all accessed AWS services to avoid NAT Gateway egress costs and improve latency.
+
+```hcl
+resource "aws_lambda_function" "api" {
+  function_name = "api-handler"
+  runtime       = "python3.12"
+  handler       = "handler.main"
+  role          = aws_iam_role.lambda.arn
+  filename      = "lambda.zip"
+
+  vpc_config {
+    subnet_ids         = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+    security_group_ids = [aws_security_group.lambda.id]
+  }
+}
+```
+
+### Advanced Engineering
+
+**Provisioned Concurrency (eliminates cold starts):**
+```hcl
+resource "aws_lambda_provisioned_concurrency_config" "api" {
+  function_name                  = aws_lambda_function.api.function_name
+  qualifier                      = aws_lambda_alias.live.name
+  provisioned_concurrent_executions = 10
+}
+```
+
+**Lambda SnapStart (Java 11+):** Snapshots the initialized JVM state. Restores on cold start instead of re-running initialization. 3–5 s Java cold starts → < 200 ms.
+
+**Lambda Power Tuning:** CPU scales linearly with memory. 512 MB at 1 s = same cost as 1,024 MB at 0.5 s. Always tune:
+```bash
+# Open-source Lambda Power Tuning tool
+npx lambda-power-tuning --function-name my-function --payload '{}' --strategy cost
+```
+
+**Concurrency math:**
+```
+Concurrent executions = Requests/sec × Average duration (seconds)
+Example: 500 req/sec × 0.2 s avg = 100 concurrent executions needed
+At 1,000 account limit: leaves 900 for other functions
+```
+
+**Async invocations + destinations:**
+```bash
+# Route failed async invocations to SQS for inspection
+aws lambda put-function-event-invoke-config \
+  --function-name my-function \
+  --destination-config '{"OnFailure":{"Destination":"arn:aws:sqs:us-east-1:123:failed-events"}}'
+```
+
+---
+
+## 9. AWS Fargate & App Runner
+
+**Fargate** = serverless compute for containers. Define CPU/memory per task/pod; AWS manages the underlying EC2 nodes.
+
+**Fargate vs. EC2 Nodes for EKS:**
+
+| Dimension | Fargate | EC2 Managed Nodes |
+|---|---|---|
+| Node management | None | Must update node groups |
+| Scale speed | Instant (pod = VM) | 2–5 min node launch |
+| Isolation | Per-pod microVM | Shared node kernel |
+| DaemonSets | Not supported | Supported |
+| GPU | Not supported | Supported |
+| EBS volumes | Not supported | Supported |
+| Best for | Stateless, security-sensitive, bursty | Stateful, DaemonSet-dependent, GPU |
+
+**App Runner:** Zero-configuration managed service. Provide ECR image or GitHub repo → App Runner builds, deploys, scales, and terminates containers. No ALB, no ASG, no VPC config required. Best for small teams prioritizing speed over control.
+
+---
+
+# SECTION 5: STORAGE
+
+## 10. Amazon S3 Deep Dive
+
+### Beginner Foundation
+
+**S3** = object storage. Flat key-value store: each object has a key (string path), value (bytes), and metadata. Not a filesystem — no hierarchy, no file locking, no random writes. Objects are read/written atomically.
+
+**Key properties:**
+- **Durability:** 99.999999999% (11 nines)
+- **Availability:** 99.99% (Standard)
+- **Object size:** 0 B to 5 TB; > 5 GB requires multipart upload; > 100 MB should use it
+- **Bucket namespace:** Global (bucket names unique across all AWS accounts and regions)
+
+### 10.1 Durability — 11 Nines Explained
+
+**How achieved:**
+1. Objects stored redundantly across ≥ 3 physically separate AZ facilities
+2. Erasure coding (redundancy without 3× storage overhead)
+3. Continuous integrity checksumming (CRC32C) — bit rot detected and repaired automatically
+4. Independent failure domains (AZ isolation: separate power, networking)
+5. Versioning protects against accidental deletion
+
+**Availability vs. Durability (commonly confused):**
+- **Durability** = probability data EXISTS = 11 nines = effectively zero data loss
+- **Availability** = probability you can ACCESS data right now = 99.99% = ~52 min/year potential unavailability
+
+During an S3 availability event, data is NOT lost — temporarily inaccessible.
+
+**What 11 nines does NOT protect against:** Accidental deletion, ransomware, account compromise. Protect with: versioning, Object Lock, cross-account backup, Block Public Access.
+
+### 10.2 S3 Storage Classes
+
+| Class | Use case | Min duration | Availability |
+|---|---|---|---|
+| **Standard** | Frequently accessed | None | 99.99% |
+| **Standard-IA** | Monthly access | 30 days | 99.9% |
+| **One Zone-IA** | Reproducible data | 30 days | 99.5% |
+| **Glacier Instant** | Archives, ms retrieval | 90 days | 99.9% |
+| **Glacier Flexible** | Archives, 1-12 hr retrieval | 90 days | 99.99% |
+| **Glacier Deep Archive** | Compliance, 12-48 hr | 180 days | 99.99% |
+| **Intelligent-Tiering** | Unknown/changing access | None | 99.9%+ |
+
+**Lifecycle policy:**
+```json
+{
+  "Rules": [{
+    "ID": "cost-optimization",
+    "Status": "Enabled",
+    "Filter": {"Prefix": "logs/"},
+    "Transitions": [
+      {"Days": 30, "StorageClass": "STANDARD_IA"},
+      {"Days": 90, "StorageClass": "GLACIER_INSTANT_RETRIEVAL"},
+      {"Days": 365, "StorageClass": "DEEP_ARCHIVE"}
+    ],
+    "Expiration": {"Days": 2555},
+    "AbortIncompleteMultipartUpload": {"DaysAfterInitiation": 7}
+  }]
+}
+```
+
+### 10.3 S3 Consistency Model
+
+**Strong read-after-write consistency for ALL operations since December 2020:**
+- PUT then immediate GET → returns new version
+- DELETE then immediate LIST → deleted object absent
+- No caching, no eventual consistency window
+
+This is a breaking change from the pre-2020 behavior where overwrite PUTs and DELETEs were eventually consistent and required workarounds.
+
+### 10.4 S3 Encryption
+
+| Type | Key management | KMS API overhead | Audit |
+|---|---|---|---|
+| SSE-S3 | AWS-managed | None | None |
+| SSE-KMS | AWS KMS CMK | Per-request KMS call | CloudTrail logs every key use |
+| SSE-C | Customer-provided | None | No KMS audit |
+| DSSE-KMS | Dual-layer KMS | Higher | Full audit |
+
+**Enforce SSE-KMS via bucket policy:**
+```json
+{
+  "Statement": [{
+    "Effect": "Deny",
+    "Principal": "*",
+    "Action": "s3:PutObject",
+    "Resource": "arn:aws:s3:::my-bucket/*",
+    "Condition": {
+      "StringNotEquals": {
+        "s3:x-amz-server-side-encryption": "aws:kms"
+      }
+    }
+  }]
+}
+```
+
+**S3 Bucket Keys:** Without it, each object PUT makes a separate `GenerateDataKey` KMS call. For 1M objects/day: 1M KMS calls/day (cost + throughput limits). Bucket Key creates a short-lived AES key at bucket level shared across multiple objects → 99% reduction in KMS API calls. Enable for all high-volume encrypted buckets.
+
+### 10.5 Multipart Upload
+
+Objects > 5 GB must use multipart. Objects > 100 MB should use it.
+
+**Parts:** 1–10,000 parts; each ≥ 5 MB (except last). Parallel upload → maximum throughput. Failed parts retry independently.
+
+**Always add AbortIncompleteMultipartUpload lifecycle rule** — incomplete multiparts are billed at Standard rate indefinitely without cleanup.
+
+### 10.6 S3 Versioning & Object Lock
+
+**Versioning:** Every write creates a new version ID. Delete adds a "delete marker" (doesn't remove bytes). Restore by specifying a version ID.
+
+**Object Lock (WORM):**
+- **Compliance mode:** No one (including root user) can delete/overwrite until retention expires. For SEC Rule 17a-4, HIPAA.
+- **Governance mode:** Overrideable by users with `s3:BypassGovernanceRetention`. For operational flexibility.
+- **Legal Hold:** Indefinite hold without expiry. Must be explicitly removed.
+
+### 10.7 S3 Replication
+
+**CRR (Cross-Region Replication):** DR, latency optimization, data residency compliance.
+**SRR (Same-Region Replication):** Cross-account sharing, log aggregation, prod→test copy.
+
+**Requirements:** Versioning on both buckets. IAM role with `s3:ReplicateObject` on destination. Existing objects NOT retroactively replicated (use S3 Batch Operations).
+
+**RTC (Replication Time Control):** SLA: 99.99% of objects replicated in ≤ 15 min. Includes CloudWatch metrics for replication lag.
+
+```hcl
+resource "aws_s3_bucket_replication_configuration" "crr" {
+  role   = aws_iam_role.replication.arn
+  bucket = aws_s3_bucket.source.id
+
+  rule {
+    id = "replicate-all"
+    status = "Enabled"
+    destination {
+      bucket        = aws_s3_bucket.destination.arn
+      storage_class = "STANDARD_IA"
+    }
+  }
+}
+```
+
+---
+
+## 11. Amazon EBS Deep Dive
+
+### Beginner Foundation
+
+**EBS** = network-attached block storage. Appears as a block device to the OS (formatttable with any filesystem). Key properties:
+- **AZ-specific:** Attach only to instances in the same AZ
+- **Persistent:** Data survives instance stop (not instance termination if DeleteOnTermination=true)
+- **Network-attached:** Low-latency via Nitro EBS card (NVMe-over-Nitro)
+- **Elastic:** Resize, change type, increase IOPS on live volumes
+
+### EBS Volume Types
+
+**gp3 (General Purpose SSD — use this by default):**
+- 3,000 IOPS baseline; up to 16,000 IOPS (independent of size)
+- 125 MiB/s baseline; up to 1,000 MiB/s
+- 20% cheaper than gp2 with more flexibility
+- IOPS and throughput configurable independently
+
+**io2 Block Express (highest performance):**
+- Up to 256,000 IOPS, 4,000 MiB/s, sub-ms latency
+- 99.999% durability (higher than gp3)
+- Use for critical databases (Oracle, SQL Server, SAP HANA)
+
+**st1 (Throughput-Optimized HDD):**
+- Optimized for large sequential reads (500 MiB/s max)
+- Cannot boot; use for data warehouses, big data, log files
+
+**sc1 (Cold HDD):**
+- Lowest cost ($0.015/GB-month)
+- 250 MiB/s max; for infrequently accessed data
+
+**gp2 vs. gp3 — the key difference:**
+- gp2: IOPS = 3 × size GB (performance tied to size; 100 GiB gp2 = 300 IOPS baseline)
+- gp3: IOPS independently configurable (100 GiB gp3 = 3,000 IOPS baseline at lower price)
+- Migration: Always move gp2 to gp3 for cost savings with no downtime
+
+```bash
+# Live migration: gp2 → gp3 with increased IOPS
+aws ec2 modify-volume \
+  --volume-id vol-0abc123 \
+  --volume-type gp3 \
+  --iops 5000 \
+  --throughput 500
+
+# Monitor status
+aws ec2 describe-volumes-modifications --volume-id vol-0abc123 \
+  --query 'VolumesModifications[0].ModificationState'
+# modifying → optimizing → completed
+
+# Extend filesystem after size increase (no restart needed)
+sudo resize2fs /dev/xvda1  # ext4
+sudo xfs_growfs /           # xfs
+```
+
+**EBS snapshots:**
+- Incremental: only changed blocks since last snapshot stored in S3.
+- Cross-region, cross-account copy supported.
+- Basis for AMIs and EBS Multi-Volume Crash-Consistent Snapshots.
+
+```bash
+# Create snapshot with resource tags
+aws ec2 create-snapshot \
+  --volume-id vol-0abc123 \
+  --description "Pre-upgrade snapshot" \
+  --tag-specifications 'ResourceType=snapshot,Tags=[{Key=Env,Value=Prod}]'
+```
+
+---
+
+## 12. Amazon EFS
+
+**EFS** = managed NFS for Linux. Thousands of instances can mount the same EFS simultaneously in the same Region (multi-AZ).
+
+**Key differentiators from EBS:**
+- Multi-mount (ReadWriteMany): EBS single-attach (except io2 Multi-Attach)
+- Multi-AZ (redundant across 3+ AZs): EBS is AZ-local
+- Elastic: No pre-provisioning; auto grows/shrinks
+- NFS protocol: Linux only (Windows → FSx for Windows)
+
+**Performance modes:**
+- General Purpose: < 1 ms latency, for web serving, CMS, home directories
+- Max I/O: Higher throughput, higher latency (> 1 ms), for big data analytics
+
+**Throughput modes:**
+- Elastic (recommended): Automatically scales; no pre-provisioning
+- Provisioned: Pre-provision throughput independent of storage size
+- Bursting: Scales with storage size + burst credits
+
+**EFS for EKS (ReadWriteMany PV):**
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: efs-claim
+spec:
+  accessModes:
+    - ReadWriteMany   # Key: multiple pods can mount simultaneously
+  storageClassName: efs-sc
+  resources:
+    requests:
+      storage: 5Gi
+```
+
+---
+
+## 13. Amazon FSx
+
+**FSx for Windows File Server:**
+- Full SMB protocol, Active Directory integration
+- Multi-AZ HA option
+- For Windows apps requiring native file shares (SQL Server FCI, user home dirs, `\\server\share`)
+
+**FSx for Lustre:**
+- High-performance parallel filesystem: up to 1 TB/s aggregate throughput
+- Sub-millisecond latency; uses EC2 EFA (Enhanced Fabric Adapter) for HPC
+- Native S3 integration: link to S3 bucket, data lazily loaded on first access
+- Used for ML training datasets, HPC, video processing
+
+**FSx for NetApp ONTAP:**
+- Full NetApp feature set (NFS, SMB, iSCSI, SnapMirror, dedup, compression, FlexClone)
+- Multi-protocol, multi-AZ
+- Migration path from on-premises NetApp
+
+**FSx for OpenZFS:**
+- ZFS features: snapshots, copy-on-write, compression, instant clones
+- NFS protocol, Linux/macOS
+- Clone entire environments instantly for dev/test
+
+---
+
+## 14. Storage Gateway
+
+Bridges on-premises environments to AWS storage. Runs as a VM appliance in your data center.
+
+| Gateway Type | Protocol | Backend | Use Case |
+|---|---|---|---|
+| S3 File Gateway | NFS/SMB | Amazon S3 | Replace on-prem file servers |
+| FSx File Gateway | SMB | FSx for Windows | Locally cached Windows shares |
+| Tape Gateway | iSCSI VTL | S3 → Glacier | Replace physical tape libraries |
+| Volume Gateway (stored) | iSCSI | S3 (async backup) | Full local storage + cloud backup |
+| Volume Gateway (cached) | iSCSI | S3 (primary) | S3 primary with local cache |
+
+---
+
+## 15. Interview Questions & Answers
+
+---
+
+### Question 1: What happens during an ASG scale-out event and how do you ensure new instances serve traffic only when ready?
+
+**What the interviewer is testing:** ASG mechanics, health check integration, graceful rollout.
+
+**Strong answer:**
+
+**Scale-out flow:**
+1. CloudWatch alarm fires (CPU > 70% for 2 consecutive 5-minute periods).
+2. ASG increases desired capacity by N instances.
+3. ASG selects AZs (balancing toward AZs with fewest instances).
+4. Calls `RunInstances` with the Launch Template.
+5. Instance transitions: pending → running.
+6. **Health check grace period starts** (default 300 s) — no health checks during this time. Allows OS boot + application start.
+7. After grace period: ELB health checks begin (HTTP GET `/health` → must return 2xx).
+8. Only after health check passes does the instance join the target group and receive traffic.
+
+**Critical config choices:**
+
+`health_check_type = "ELB"` (not default "EC2"): EC2 health checks only verify the OS is up. ELB health checks verify the application is responding. A crashed application that still has an OS running would pass EC2 checks and receive traffic.
+
+**For complex initialization (DB migration, cache warming):** Use lifecycle hooks to pause instances in `Pending:Wait`. Your code runs initialization, then calls:
+```bash
+aws autoscaling complete-lifecycle-action \
+  --lifecycle-hook-name warmup-hook \
+  --auto-scaling-group-name my-asg \
+  --lifecycle-action-result CONTINUE \
+  --instance-id $(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+```
+
+**Scale-in protection:** During scale-in, lifecycle hook pauses the instance in `Terminating:Wait`. Your code drains active connections (deregister from target group, wait for deregistration delay), flushes logs, then signals completion.
+
+**Likely follow-ups:**
+1. *What is the termination policy for ASG scale-in?* — Default: OldestLaunchTemplate → AZ imbalance correction → OldestInstance. You can customize: `ClosestToNextInstanceHour` saves RI cost by terminating instances near their billing hour. `NewestInstance` is useful for canary rollbacks.
+2. *How does Instance Refresh work for rolling AMI updates?* — Sets a `MinHealthyPercentage` and `InstanceWarmup`. ASG terminates old instances in batches, waiting for new ones to pass health checks before continuing. Equivalent to a controlled rolling deployment with automatic rollback if health checks fail.
+
+---
+
+### Question 2: Explain S3 durability. A customer asks: "If I store 10 million files in S3, how many files can I expect to lose per year?" Answer with the calculation.
+
+**What the interviewer is testing:** Understanding of probabilistic durability, real-world application.
+
+**Strong answer:**
+
+S3 Standard durability = 99.999999999% = 1 - 10^(-11) probability of losing a given object in a given year.
+
+**Calculation:**
+- P(lose one object in a year) = 1 - 0.99999999999 = 0.00000000001 = 10^(-11)
+- Expected objects lost per year = total objects × P(lose) = 10,000,000 × 10^(-11) = 10^7 × 10^(-11) = **0.0001 objects per year**
+
+So for 10 million objects, you'd expect to lose 0.0001 objects per year — effectively zero, or statistically: one lost object every 10,000 years for a set of 10 million objects.
+
+**How AWS achieves this:**
+1. Objects stored across ≥ 3 AZ facilities with erasure coding.
+2. Continuous integrity scanning (CRC32C checksums on every block, background repair of detected corruption).
+3. Independent failure domains (separate power, network, physical hardware per AZ).
+
+**What this does NOT protect against:**
+
+Customer-initiated data loss scenarios:
+- Accidental deletion → versioning + Object Lock (compliance or governance mode)
+- Overwriting objects → versioning (keeps all versions)
+- Ransomware deleting all objects → S3 Block Public Access + cross-account immutable backup + Object Lock
+- Account compromise → AWS Organizations SCP preventing `s3:DeleteBucket`, cross-account backup
+
+**Likely follow-ups:**
+1. *When would you choose S3 One Zone-IA?* — For reproducible/regeneratable data only (thumbnails from originals, computed reports from a database). Durability drops significantly (single AZ — AZ failure = data loss). Never for irreplaceable data.
+2. *How does S3 Replication complement durability?* — Replication adds regional durability. Single Region durability is 11 nines, but the entire Region could be inaccessible during a major event. CRR ensures a complete copy exists in another Region for DR and compliance.
+
+---
+
+### Question 3: What is Lambda cold start and how would you fix it for a customer-facing API with p99 latency SLO of < 100ms?
+
+**What the interviewer is testing:** Lambda performance internals, optimization strategies, trade-off analysis.
+
+**Strong answer:**
+
+A cold start occurs when Lambda creates a new execution environment — a Firecracker microVM is spun up, the function package is downloaded and unpacked, the language runtime is started, and global initialization code runs. This takes 100 ms to 3+ seconds depending on runtime and package size.
+
+**Diagnosing cold starts:**
+```bash
+aws logs start-query \
+  --log-group-name "/aws/lambda/my-api" \
+  --query-string 'filter @type = "REPORT"
+    | stats 
+        count(@initDuration) as coldStartCount,
+        avg(@initDuration) as avgInitMs,
+        max(@initDuration) as maxInitMs,
+        count(*) as totalRequests
+      by bin(5m)'
+```
+
+**For a < 100ms p99 SLO:**
+
+100 ms p99 is extremely aggressive for Lambda with cold starts. The approach depends on traffic patterns:
+
+**Option A — Provisioned Concurrency (best for consistent < 100ms p99):**
+Pre-warm N execution environments. Cold starts eliminated for those N instances. Cost: ~$0.015/hour per provisioned instance at 1 GB memory.
+
+```hcl
+resource "aws_lambda_provisioned_concurrency_config" "api" {
+  function_name                  = aws_lambda_function.api.function_name
+  qualifier                      = aws_lambda_alias.live.name
+  provisioned_concurrent_executions = 20  # Size based on concurrent traffic
+}
+```
+
+Use Application Auto Scaling to scale PC up during peak hours and down overnight:
+```hcl
+resource "aws_appautoscaling_scheduled_action" "scale_up" {
+  name               = "scale-up-business-hours"
+  service_namespace  = "lambda"
+  resource_id        = "function:${aws_lambda_function.api.function_name}:live"
+  scalable_dimension = "lambda:function:ProvisionedConcurrency"
+  schedule           = "cron(0 8 * * ? *)"  # 8 AM UTC
+  scalable_target_action {
+    min_capacity = 50
+    max_capacity = 50
+  }
+}
+```
+
+**Option B — Lambda SnapStart (Java only, free):**
+For Java functions, SnapStart snapshots the initialized JVM. 3+ s cold starts → < 200 ms. Note: random data (UUID, timestamps) generated in global scope during snapshot restore will be the same unless explicitly refreshed.
+
+**Option C — Architecture change (if < 100ms is truly critical for ALL requests):**
+Move to ECS/Fargate or EKS with always-on pods. Zero cold starts, consistent latency, but always-on cost. Better for < 50 ms p99 requirements.
+
+**Optimize regardless of above:**
+- Move all SDK/DB client initialization to global scope.
+- Reduce package size (Lambda Layers, tree-shaking, exclude test dependencies).
+- Use Python or Node.js for lower base cold start than Java/.NET.
+- Increase memory (reduces cold start duration by speeding up package load and initialization).
+
+**Likely follow-ups:**
+1. *What happens when Lambda has more concurrent requests than provisioned concurrency instances?* — Requests above the provisioned count are handled by on-demand instances with cold starts. Use Application Auto Scaling on provisioned concurrency with target tracking on `ProvisionedConcurrencyUtilization` metric.
+2. *How do you size provisioned concurrency?* — Concurrent Lambda invocations = requests/sec × avg duration. If 500 req/s at 50 ms avg: 500 × 0.05 = 25 concurrent. Set PC to 30 (20% buffer). Monitor `ConcurrentExecutions` and `ProvisionedConcurrencyUtilization` and adjust.
+
+---
+
+### Question 4: When would you choose EFS over EBS, and what are the trade-offs?
+
+**What the interviewer is testing:** Storage selection judgment, distributed systems understanding.
+
+**Strong answer:**
+
+**Choose EFS when:**
+1. **Multiple instances need simultaneous read/write access to the same data** — EBS allows only one instance (except io2 Multi-Attach). EFS mounts on thousands of instances simultaneously.
+2. **Kubernetes workloads needing ReadWriteMany PVC** — EKS pods across multiple AZs share an EFS volume. EBS supports ReadWriteOnce (single pod) only.
+3. **No pre-provisioning needed** — EFS grows and shrinks automatically. EBS requires size pre-commitment.
+4. **Multi-AZ redundancy** — EFS data is replicated across ≥ 3 AZs. An AZ failure doesn't lose or interrupt EFS access. An EBS volume failure in one AZ is unrecoverable without a snapshot.
+5. **Home directories for thousands of users** — Each user gets a directory in a shared EFS filesystem. Scaling to 1,000 users doesn't require 1,000 EBS volumes.
+
+**Choose EBS when:**
+1. **Single-instance, high-performance I/O** — EBS (io2) provides < 1 ms latency, 256,000 IOPS. EFS latency is 1–10 ms (General Purpose) or higher.
+2. **Databases** — Relational databases (PostgreSQL, MySQL, Oracle) on EC2 use EBS. The single-writer model, IOPS consistency, and low latency suit databases. EFS NFS latency is too high for database transaction logs.
+3. **Windows workloads** — EFS is NFS (Linux only). Windows requires EBS (NTFS) or FSx for Windows.
+4. **Boot volumes** — EC2 boot volumes must be EBS (EFS cannot be a boot device).
+5. **Cost sensitivity at high IOPS** — EBS gp3 at 3,000 IOPS is $0.08/GB-month. EFS Standard is $0.30/GB-month. For high-I/O single-instance workloads, EBS is significantly cheaper.
+
+**Performance comparison:**
+
+| Metric | EBS gp3 | EBS io2 | EFS |
+|---|---|---|---|
+| Latency | < 1 ms | < 0.5 ms | 1–10 ms |
+| IOPS | up to 16,000 | up to 256,000 | Scales with throughput mode |
+| Throughput | up to 1,000 MiB/s | up to 4,000 MiB/s | Up to 10 GB/s (Elastic) |
+| Multi-attach | io2 only (up to 16) | Yes (up to 16) | Yes (thousands) |
+| AZ scope | Single AZ | Single AZ | Regional (multi-AZ) |
+
+**Production example:** A content management system with 50 web servers serving shared media files. EFS mounts the same filesystem on all 50 servers — content editors upload once and all servers immediately see the new file. With EBS, you'd need a different architecture (S3 + CloudFront, or a manual sync mechanism).
+
+**Likely follow-ups:**
+1. *Can you use EFS with EKS Fargate?* — Yes. EFS is the only supported persistent volume type for EKS Fargate (EBS is not supported on Fargate). Use the EFS CSI driver with a static or dynamic PVC.
+2. *What is EFS Intelligent-Tiering?* — Automatically moves files between Standard and IA tiers based on access frequency. Files not accessed for N days (configurable, default 30) move to IA (91% cheaper). On next access, they move back to Standard. No code changes needed — transparent to applications.
+
+---
+
+## 16. Troubleshooting Scenarios
+
+### Scenario 1: "Lambda function suddenly 504 timeout errors from API Gateway. Function was working fine yesterday."
+
+**Symptom:** API Gateway returns 504 Gateway Timeout. Lambda logs show no invocations after a certain time, or logs show execution exceeding 29 seconds (API Gateway's max integration timeout).
+
+**Investigation:**
+
+```bash
+# Step 1: Check Lambda function timeout setting
+aws lambda get-function-configuration --function-name my-api-function \
+  --query '{Timeout:Timeout,MemorySize:MemorySize,VpcConfig:VpcConfig}'
+
+# Step 2: Check recent Lambda errors and duration
+aws cloudwatch get-metric-statistics \
+  --namespace AWS/Lambda --metric-name Duration \
+  --dimensions Name=FunctionName,Value=my-api-function \
+  --start-time $(date -d '2 hours ago' -u +%Y-%m-%dT%H:%M:%SZ) \
+  --end-time $(date -u +%Y-%m-%dT%H:%M:%SZ) \
+  --period 300 --statistics Maximum,p99
+
+# Step 3: Check Lambda throttle errors
+aws cloudwatch get-metric-statistics \
+  --namespace AWS/Lambda --metric-name Throttles \
+  --dimensions Name=FunctionName,Value=my-api-function \
+  --period 300 --statistics Sum
+
+# Step 4: Check Lambda logs for errors
+aws logs filter-log-events \
+  --log-group-name "/aws/lambda/my-api-function" \
+  --start-time $(date -d '2 hours ago' +%s000) \
+  --filter-pattern "ERROR Task timed out"
+
+# Step 5: If Lambda is in VPC, check VPC connectivity
+aws ec2 describe-nat-gateways \
+  --filter Name=state,Values=available Name=vpc-id,Values=vpc-0abc123
+```
+
+**Plausible cause 1:** Lambda timeout increased API calls from an external API that became slow/down. The Lambda function waits indefinitely for the external API response, consuming its 29-second (or configured) timeout.
+
+**Plausible cause 2:** Lambda in VPC — NAT Gateway became unhealthy. Lambda can't reach external APIs or AWS services (if no VPC endpoints configured). Previous invocations used cached TCP connections; new connections fail.
+
+**Plausible cause 3:** Database connection pool exhaustion. Lambda scaled to high concurrency, each instance holding a DB connection. DB max_connections exceeded → Lambda waits for available connection → timeout.
+
+**Root cause identification:**
+
+If NAT Gateway issue:
+```bash
+# Check NAT Gateway metrics
+aws cloudwatch get-metric-statistics \
+  --namespace AWS/NATGateway \
+  --metric-name ErrorPortAllocation \
+  --dimensions Name=NatGatewayId,Value=nat-0abc123 \
+  --period 60 --statistics Sum
+
+# Check ENI errors in VPC Flow Logs
+aws logs start-query \
+  --log-group-name /vpc/flow-logs \
+  --query-string 'filter action = "REJECT" and srcAddr like "10.0." | sort @timestamp desc | limit 20'
+```
+
+**Fix for DB connection exhaustion:** Use RDS Proxy (connection pooler) between Lambda and RDS. RDS Proxy maintains a pool of DB connections and multiplexes Lambda's ephemeral connections through the pool. Reduces DB connections from `concurrency × 1` to a manageable pool size.
+
+---
+
+### Scenario 2: "EC2 instance becomes unreachable after gp2 → gp3 EBS volume migration."
+
+**Symptom:** After volume modification, SSH connections to the instance time out. The AWS console shows the instance is running.
+
+**Investigation:**
+
+```bash
+# Step 1: Check modification status
+aws ec2 describe-volumes-modifications \
+  --volume-id vol-0abc123
+
+# Step 2: Check instance system logs (doesn't require SSH)
+aws ec2 get-console-output --instance-id i-0abc123 --latest
+
+# Step 3: Check instance status checks
+aws ec2 describe-instance-status --instance-id i-0abc123
+
+# Step 4: Try SSM Session Manager (doesn't use SSH)
+aws ssm start-session --target i-0abc123
+```
+
+**Most likely cause:** Volume modification from gp2 to gp3 does NOT require restart, but if the volume type changes involve the root volume and the OS has an open filesystem journal, a brief I/O pause during the transition can cause the OS to detect filesystem corruption on resume. The OS may have mounted the filesystem read-only or triggered fsck.
+
+**Resolution without SSH (via SSM):**
+```bash
+# Check filesystem status
+dmesg | tail -50 | grep -E "EXT4-fs|XFS|error|I/O error"
+
+# If filesystem mounted read-only
+sudo mount -o remount,rw /
+
+# If fsck needed (for ext4)
+sudo fsck -y /dev/xvda1  # only when unmounted or in recovery mode
+```
+
+**Better approach for root volume modifications:** For root volume type changes, snapshot first, then schedule a maintenance window where you stop the instance, modify the volume type, and restart. This avoids any risk of I/O interruption affecting the OS.
+
+---
+
+## 17. Production Best Practices
+
+**EC2:**
+- Use Graviton (ARM64) instances as default for new workloads — 20–40% better price/performance.
+- Require IMDSv2 via SCP: Deny `ec2:RunInstances` if `MetadataHttpTokens != required`.
+- Always use Launch Templates (not Launch Configurations — deprecated).
+- Enable EC2 Auto Recovery for stateful single-instance workloads.
+- Use ASGs for all stateless workloads — even a "single-instance" stateless app benefits from auto-replacement.
+
+**Auto Scaling:**
+- `health_check_type = "ELB"` for all web ASGs.
+- Set minimum capacity so remaining AZs handle full load after one AZ failure.
+- Implement lifecycle hooks for all stateful lifecycle events (drain before termination, initialize before traffic).
+
+**Lambda:**
+- Initialize SDK clients and DB connections in global scope (runs once per execution environment).
+- Use Provisioned Concurrency for customer-facing latency-sensitive functions.
+- Run Lambda Power Tuning before going to production — often 2× memory = same cost with better performance.
+- Always set DLQ or destination for async invocations.
+- Use RDS Proxy to prevent DB connection exhaustion at high concurrency.
+
+**S3:**
+- Enable versioning + Object Lock for production data buckets.
+- Enable Block Public Access at account level (prevents any bucket from being public).
+- Use S3 Bucket Keys for all KMS-encrypted buckets receiving > 10K requests/day.
+- Add `AbortIncompleteMultipartUpload` lifecycle rule to all buckets.
+- Configure S3 access logging or S3 Server Access Logs for security forensics.
+
+**EBS:**
+- Migrate all gp2 volumes to gp3 (cheaper, more flexible, no downtime required).
+- Enable EBS encryption by default at account level: `aws ec2 enable-ebs-encryption-by-default`.
+- Automate EBS snapshots via AWS Backup with retention tiers (daily/weekly/monthly).
+- Monitor `BurstBalance` for gp2 volumes (migrate to gp3 to eliminate burst concerns).
+
+---
+
+## 18. Documentation Links
+
+| Topic | Official Link |
+|---|---|
+| EC2 Instance Types | https://aws.amazon.com/ec2/instance-types/ |
+| Nitro System | https://aws.amazon.com/ec2/nitro/ |
+| EC2 Auto Scaling | https://docs.aws.amazon.com/autoscaling/ec2/userguide/what-is-amazon-ec2-auto-scaling.html |
+| Spot Instances | https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-spot-instances.html |
+| Lambda Developer Guide | https://docs.aws.amazon.com/lambda/latest/dg/welcome.html |
+| Lambda SnapStart | https://docs.aws.amazon.com/lambda/latest/dg/snapstart.html |
+| Lambda Power Tuning | https://github.com/alexcasalboni/aws-lambda-power-tuning |
+| Amazon S3 | https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html |
+| S3 Storage Classes | https://docs.aws.amazon.com/AmazonS3/latest/userguide/storage-class-intro.html |
+| S3 Object Lock | https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock.html |
+| EBS Volume Types | https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-volume-types.html |
+| EBS Encryption | https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html |
+| Amazon EFS | https://docs.aws.amazon.com/efs/latest/ug/whatisefs.html |
+| Amazon FSx | https://docs.aws.amazon.com/fsx/ |
+| Storage Gateway | https://docs.aws.amazon.com/storagegateway/latest/userguide/WhatIsStorageGateway.html |
+| AWS Backup | https://docs.aws.amazon.com/aws-backup/latest/devguide/whatisbackup.html |
+| Savings Plans | https://docs.aws.amazon.com/savingsplans/latest/userguide/what-is-savings-plans.html |
+| RDS Proxy | https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-proxy.html |
