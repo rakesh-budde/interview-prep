@@ -1,205 +1,447 @@
-# Sections 19–20: Hands-On Labs · Documentation Index
+# SECTION 14: HANDS-ON LABS & PRACTICAL PROJECTS
 
-> Part of the [AWS Interview Preparation Roadmap](./README.md). Covers **Section 19: Hands-On Labs** (Beginner→Expert) and **Section 20: Documentation Index**.
-
----
-
-# SECTION 19: HANDS-ON LABS
-
-> Build these in a sandbox account. **Always tear down** (destroy) afterward to avoid charges, and set a Budget alert. Prefer Terraform so labs are reproducible.
-
-## 19.1 Beginner
-
-### B1 — Networking: Three-Tier VPC
-Build a 3-AZ VPC (public/private/data), IGW, per-AZ NAT, route tables, SGs. Deploy an EC2 web app behind an ALB.
-- **Skills:** subnets, routing, SG vs NACL, ALB.
-- **Success:** app reachable via ALB; private instances egress via NAT only.
-
-### B2 — IAM: Roles & Instance Profiles
-Create an IAM role granting read-only S3; attach to EC2; verify with `aws s3 ls` (no keys on the box).
-- **Skills:** roles, instance profiles, least privilege, IMDSv2.
-
-### B3 — Storage: S3 Lifecycle + Versioning
-Enable versioning; add lifecycle to transition to IA/Glacier and expire old versions; enable default encryption.
-- **Skills:** storage classes, lifecycle, encryption.
-
-### B4 — Compute: Auto Scaling
-Create an ASG with target-tracking on CPU behind an ALB; load-test to trigger scale-out/in.
-- **Skills:** launch templates, ASG policies, health checks.
-
-## 19.2 Intermediate
-
-### I1 — EKS Cluster with IRSA (Terraform)
-Provision EKS via `terraform-aws-modules/eks`; enable OIDC; give a pod scoped S3 access via IRSA; verify `aws sts get-caller-identity` in-pod.
-- **Skills:** EKS, IRSA, OIDC, Terraform.
-
-### I2 — CI/CD: GitHub Actions → ECS (keyless)
-IAM OIDC provider + deploy role scoped to `main`; build image → ECR; deploy to ECS Fargate behind ALB; blue/green with CodeDeploy + alarm rollback.
-- **Skills:** OIDC, ECR, ECS, deployment strategies.
-
-### I3 — Terraform Backend & Modules
-S3 + DynamoDB backend with KMS; build a reusable VPC module; consume in two environments; add checkov to CI.
-- **Skills:** remote state, locking, modules, policy-as-code.
-
-### I4 — Observability Stack
-Instrument an app with ADOT (OTel): traces→X-Ray, metrics→AMP, dashboards in AMG; define an SLO + burn-rate alarm→SNS.
-- **Skills:** OpenTelemetry, AMP/AMG, SLOs.
-
-### I5 — Event-Driven: Fan-Out + DLQ
-SNS→(2×SQS)→Lambda consumers with a DLQ; force a failure; redrive from DLQ; make consumers idempotent.
-- **Skills:** SNS/SQS, DLQ, idempotency.
-
-## 19.3 Advanced
-
-### A1 — Karpenter + Spot on EKS
-Install Karpenter; deploy a workload that triggers JIT Spot node provisioning; enable consolidation; add interruption handling.
-- **Skills:** Karpenter, Spot, bin-packing, cost.
-
-### A2 — Multi-Account Landing Zone
-Set up Organizations + Control Tower; add an OU + SCP denying `s3:DeleteBucket` and region restrictions; centralize CloudTrail/Config in a log-archive account.
-- **Skills:** Organizations, SCPs, governance.
-
-### A3 — Hub-and-Spoke with Transit Gateway
-Connect 3 VPCs via TGW; central egress VPC with AWS Network Firewall; force `0.0.0.0/0` through inspection; verify with Flow Logs.
-- **Skills:** TGW, centralized egress, firewall.
-
-### A4 — DynamoDB Single-Table Design
-Model a chat/social app single-table with GSIs; reproduce a hot partition; fix with write sharding; add Streams + TTL.
-- **Skills:** NoSQL modeling, partitioning, streams.
-
-### A5 — Security: KMS + Auto-Remediation
-Create a CMK; encrypt S3/EBS; cross-account decrypt via key policy; GuardDuty finding→EventBridge→Lambda quarantine.
-- **Skills:** envelope encryption, detection, response automation.
-
-## 19.4 Expert
-
-### E1 — Multi-Region Active-Active EKS
-Two regional EKS clusters, Route 53 latency + failover (or Global Accelerator), DynamoDB Global Tables, GitOps (ArgoCD) to both; run a Region-evacuation game day.
-- **Skills:** multi-Region, global routing, DR, static stability.
-
-### E2 — Progressive Delivery at Scale
-Argo Rollouts canary with automated metric analysis (Prometheus) + auto-rollback; wave-based rollout across cells.
-- **Skills:** progressive delivery, SLO gating.
-
-### E3 — Cost Optimization Program
-Instrument Cost Explorer + Storage Lens + Compute Optimizer; migrate to Graviton; Savings Plans + Spot; document savings with reliability checks.
-- **Skills:** FinOps, right-sizing, trade-offs.
-
-### E4 — LLM Inference Platform
-vLLM/TGI on EKS GPU/Inferentia nodes (Karpenter Spot), model artifacts in S3, RAG with OpenSearch/pgvector, token-based autoscaling, guardrails; compare with Bedrock.
-- **Skills:** GPU scheduling, RAG, cost control.
-
-## 19.5 Lab Discipline
-
-- Tag every lab resource (`Project=interview-labs`); `terraform destroy` when done.
-- Set an AWS Budget + anomaly alert on the sandbox account.
-- Never use the root user; use an admin role with MFA.
-- Keep each lab in its own state/directory for clean teardown.
+## TABLE OF CONTENTS
+- [Lab Environment Setup](#lab-environment-setup)
+- [Beginner Labs](#beginner-labs)
+- [Intermediate Labs](#intermediate-labs)
+- [Advanced Labs](#advanced-labs)
+- [Expert Capstone Projects](#expert-capstone-projects)
 
 ---
 
-# SECTION 20: DOCUMENTATION INDEX
+## LAB ENVIRONMENT SETUP
 
-> Official AWS docs, Architecture Center, Well-Architected, Reliability, and Security references per topic. Use official Microsoft-of-AWS sources: docs.aws.amazon.com, aws.amazon.com/architecture, AWS Skill Builder.
+**Prerequisites:**
+- AWS account (free tier or paid).
+- AWS CLI v2 installed and configured.
+- kubectl v1.27+.
+- Terraform v1.5+.
+- Docker (optional, for local testing).
+- Code editor (VS Code recommended).
 
-## 20.1 Foundational
+**Setup AWS Credentials:**
+```bash
+aws configure
+# Enter Access Key, Secret Key, default region (us-east-1)
 
-- AWS Documentation home: https://docs.aws.amazon.com/
-- AWS Architecture Center: https://aws.amazon.com/architecture/
-- Well-Architected Framework: https://docs.aws.amazon.com/wellarchitected/latest/framework/
-- AWS Builders' Library: https://aws.amazon.com/builders-library/
-- AWS Skill Builder (training): https://skillbuilder.aws/
-- AWS Global Infrastructure: https://aws.amazon.com/about-aws/global-infrastructure/
+# Verify
+aws sts get-caller-identity
+# Should return your account ID and ARN
+```
 
-## 20.2 Governance & Fundamentals (Section 1)
+**Recommended AWS Region:** us-east-1 (most services, lowest cost).
 
-- Organizations: https://docs.aws.amazon.com/organizations/latest/userguide/
-- Control Tower: https://docs.aws.amazon.com/controltower/latest/userguide/
-- AWS Config: https://docs.aws.amazon.com/config/latest/developerguide/
-- Service Quotas: https://docs.aws.amazon.com/servicequotas/latest/userguide/
-
-## 20.3 Identity (Section 2)
-
-- IAM: https://docs.aws.amazon.com/IAM/latest/UserGuide/
-- Policy evaluation logic: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html
-- STS: https://docs.aws.amazon.com/STS/latest/APIReference/
-- IAM Identity Center: https://docs.aws.amazon.com/singlesignon/latest/userguide/
-- Security Pillar (WAF): https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/
-
-## 20.4 Networking (Section 3)
-
-- VPC: https://docs.aws.amazon.com/vpc/latest/userguide/
-- Transit Gateway: https://docs.aws.amazon.com/vpc/latest/tgw/
-- PrivateLink: https://docs.aws.amazon.com/vpc/latest/privatelink/
-- Route 53: https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/
-- ELB: https://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/
-
-## 20.5 Compute & Storage (Sections 4–5)
-
-- EC2: https://docs.aws.amazon.com/ec2/
-- Nitro: https://aws.amazon.com/ec2/nitro/
-- Auto Scaling: https://docs.aws.amazon.com/autoscaling/ec2/userguide/
-- Lambda: https://docs.aws.amazon.com/lambda/latest/dg/
-- S3: https://docs.aws.amazon.com/AmazonS3/latest/userguide/
-- EBS/EFS/FSx: https://docs.aws.amazon.com/ebs/ · https://docs.aws.amazon.com/efs/ · https://docs.aws.amazon.com/fsx/
-
-## 20.6 EKS & Containers (Sections 6–7)
-
-- EKS User Guide: https://docs.aws.amazon.com/eks/latest/userguide/
-- EKS Best Practices: https://aws.github.io/aws-eks-best-practices/
-- VPC CNI: https://github.com/aws/amazon-vpc-cni-k8s
-- IRSA: https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html
-- Pod Identity: https://docs.aws.amazon.com/eks/latest/userguide/pod-identities.html
-- Karpenter: https://karpenter.sh/docs/
-- AWS Load Balancer Controller: https://kubernetes-sigs.github.io/aws-load-balancer-controller/
-- ECS/ECR/Fargate: https://docs.aws.amazon.com/AmazonECS/ · https://docs.aws.amazon.com/AmazonECR/
-
-## 20.7 Terraform & CI/CD (Sections 8–10)
-
-- Terraform AWS provider: https://registry.terraform.io/providers/hashicorp/aws/latest/docs
-- Terraform S3 backend: https://developer.hashicorp.com/terraform/language/settings/backends/s3
-- CodePipeline/Build/Deploy: https://docs.aws.amazon.com/codepipeline/ · https://docs.aws.amazon.com/codebuild/ · https://docs.aws.amazon.com/codedeploy/
-- GitHub Actions OIDC with AWS: https://docs.github.com/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services
-
-## 20.8 Observability & Security (Sections 11–12)
-
-- CloudWatch: https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/
-- X-Ray: https://docs.aws.amazon.com/xray/latest/devguide/
-- AMP / AMG: https://docs.aws.amazon.com/prometheus/ · https://docs.aws.amazon.com/grafana/
-- KMS: https://docs.aws.amazon.com/kms/latest/developerguide/
-- Secrets Manager: https://docs.aws.amazon.com/secretsmanager/latest/userguide/
-- GuardDuty / Security Hub: https://docs.aws.amazon.com/guardduty/ · https://docs.aws.amazon.com/securityhub/
-
-## 20.9 Databases & Event-Driven (Sections 13–14)
-
-- RDS / Aurora: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/ · https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/
-- DynamoDB: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/
-- ElastiCache / Redshift: https://docs.aws.amazon.com/AmazonElastiCache/ · https://docs.aws.amazon.com/redshift/
-- SQS / SNS / EventBridge: https://docs.aws.amazon.com/AWSSimpleQueueService/ · https://docs.aws.amazon.com/sns/ · https://docs.aws.amazon.com/eventbridge/
-- Kinesis / MSK / Step Functions: https://docs.aws.amazon.com/streams/ · https://docs.aws.amazon.com/msk/ · https://docs.aws.amazon.com/step-functions/
-
-## 20.10 Reliability & Resilience
-
-- Reliability Pillar: https://docs.aws.amazon.com/wellarchitected/latest/reliability-pillar/
-- AWS Resilience Hub: https://docs.aws.amazon.com/resilience-hub/
-- AWS Health Dashboard: https://docs.aws.amazon.com/health/latest/ug/
-- Disaster Recovery whitepaper: https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/
-
-## 20.11 Certifications (map to study)
-
-| Cert | Relevance |
-|------|-----------|
-| Solutions Architect – Associate/Professional | Architecture, trade-offs, system design |
-| DevOps Engineer – Professional | CI/CD, IaC, monitoring, automation |
-| Security – Specialty | IAM, KMS, detection, data perimeter |
-| Advanced Networking – Specialty | VPC, TGW, hybrid, DNS |
-
-## 20.12 Study Cadence (recap)
-
-- Read the section → do the lab → answer the Q&A out loud → note weak spots.
-- Weekly: one timed system design + one troubleshooting drill.
-- Final weeks: full loop simulation + STAR polish.
+**Cost Awareness:** Each lab may cost $1–$20. Destroy resources after labs to avoid surprises. Use AWS Budgets to set spending alerts.
 
 ---
 
-> This completes **Sections 19–20** and the full 20-section AWS Interview Preparation Roadmap. Return to the **[README](./README.md)** for the master table of contents.
+## BEGINNER LABS
+
+### Lab 1: Deploy a Three-Tier Application to ECS Fargate
+
+**Objective:** Understand ECS, task definitions, load balancing, and container deployment.
+
+**Duration:** 2–3 hours.
+
+**Architecture:**
+```
+Internet → ALB → ECS Fargate Tasks (Web Server) → RDS (Database) + ElastiCache (Cache)
+```
+
+**Steps:**
+
+1. **Create VPC and Subnets:**
+   ```bash
+   # Use Terraform (or console)
+   cat > main.tf << 'EOF'
+   provider "aws" {
+     region = "us-east-1"
+   }
+   
+   resource "aws_vpc" "lab" {
+     cidr_block = "10.0.0.0/16"
+   }
+   
+   resource "aws_subnet" "public_1" {
+     vpc_id            = aws_vpc.lab.id
+     cidr_block        = "10.0.1.0/24"
+     availability_zone = "us-east-1a"
+   }
+   
+   resource "aws_subnet" "public_2" {
+     vpc_id            = aws_vpc.lab.id
+     cidr_block        = "10.0.2.0/24"
+     availability_zone = "us-east-1b"
+   }
+   EOF
+   
+   terraform init
+   terraform plan
+   terraform apply
+   ```
+
+2. **Create Application Load Balancer:**
+   ```bash
+   aws elbv2 create-load-balancer \
+     --name lab-alb \
+     --subnets subnet-xxxxx subnet-yyyyy \
+     --security-groups sg-xxxxx \
+     --scheme internet-facing \
+     --region us-east-1
+   ```
+
+3. **Create ECS Cluster:**
+   ```bash
+   aws ecs create-cluster --cluster-name lab-cluster --region us-east-1
+   ```
+
+4. **Create Task Definition (container spec):**
+   ```bash
+   cat > task-definition.json << 'EOF'
+   {
+     "family": "lab-web-app",
+     "networkMode": "awsvpc",
+     "requiresCompatibilities": ["FARGATE"],
+     "cpu": "256",
+     "memory": "512",
+     "containerDefinitions": [
+       {
+         "name": "web-app",
+         "image": "nginx:latest",
+         "portMappings": [
+           {
+             "containerPort": 80,
+             "hostPort": 80,
+             "protocol": "tcp"
+           }
+         ],
+         "essential": true,
+         "logConfiguration": {
+           "logDriver": "awslogs",
+           "options": {
+             "awslogs-group": "/ecs/lab-web-app",
+             "awslogs-region": "us-east-1",
+             "awslogs-stream-prefix": "ecs"
+           }
+         }
+       }
+     ]
+   }
+   EOF
+   
+   aws ecs register-task-definition --cli-input-json file://task-definition.json --region us-east-1
+   ```
+
+5. **Create ECS Service (deploy tasks):**
+   ```bash
+   aws ecs create-service \
+     --cluster lab-cluster \
+     --service-name lab-web-service \
+     --task-definition lab-web-app \
+     --desired-count 2 \
+     --load-balancers targetGroupArn=arn:aws:elasticloadbalancing:...,containerName=web-app,containerPort=80 \
+     --network-configuration "awsvpcConfiguration={subnets=[subnet-xxxxx,subnet-yyyyy],securityGroups=[sg-xxxxx],assignPublicIp=ENABLED}" \
+     --region us-east-1
+   ```
+
+6. **Verify:**
+   ```bash
+   # Check service status
+   aws ecs describe-services --cluster lab-cluster --services lab-web-service --region us-east-1 | jq '.services[0].status'
+   
+   # Get ALB DNS
+   aws elbv2 describe-load-balancers --names lab-alb --region us-east-1 | jq '.LoadBalancers[0].DNSName'
+   
+   # Visit in browser (should see nginx page)
+   curl http://<ALB-DNS>
+   ```
+
+7. **Cleanup:**
+   ```bash
+   aws ecs delete-service --cluster lab-cluster --service lab-web-service --force --region us-east-1
+   aws ecs delete-cluster --cluster lab-cluster --region us-east-1
+   terraform destroy
+   ```
+
+**Learning Outcomes:**
+- Understand ECS/Fargate architecture.
+- Load balancing concepts.
+- Network configuration (VPC, subnets, security groups).
+- CloudWatch logging.
+
+**Interview Connection:** Explain ECS task lifecycle, how ALB health checks work, scaling.
+
+---
+
+### Lab 2: Build a Lambda-based Serverless API
+
+**Objective:** Create REST API using API Gateway + Lambda + DynamoDB.
+
+**Duration:** 1.5–2 hours.
+
+**Architecture:**
+```
+Client → API Gateway → Lambda → DynamoDB (storage)
+```
+
+**Steps:**
+
+1. **Create DynamoDB Table:**
+   ```bash
+   aws dynamodb create-table \
+     --table-name lab-todos \
+     --attribute-definitions AttributeName=id,AttributeType=S \
+     --key-schema AttributeName=id,KeyType=HASH \
+     --billing-mode PAY_PER_REQUEST \
+     --region us-east-1
+   ```
+
+2. **Create Lambda Function:**
+   ```bash
+   mkdir lambda-function
+   cd lambda-function
+   
+   cat > index.py << 'EOF'
+   import json
+   import boto3
+   import uuid
+   from datetime import datetime
+   
+   dynamodb = boto3.resource('dynamodb')
+   table = dynamodb.Table('lab-todos')
+   
+   def lambda_handler(event, context):
+       http_method = event['httpMethod']
+       
+       if http_method == 'POST':
+           body = json.loads(event['body'])
+           todo_id = str(uuid.uuid4())
+           table.put_item(Item={
+               'id': todo_id,
+               'title': body['title'],
+               'created_at': datetime.utcnow().isoformat()
+           })
+           return {
+               'statusCode': 201,
+               'body': json.dumps({'id': todo_id})
+           }
+       
+       elif http_method == 'GET':
+           response = table.scan()
+           return {
+               'statusCode': 200,
+               'body': json.dumps(response['Items'])
+           }
+       
+       return {'statusCode': 400, 'body': 'Invalid method'}
+   EOF
+   
+   zip function.zip index.py
+   
+   # Upload
+   aws lambda create-function \
+     --function-name lab-todo-api \
+     --runtime python3.11 \
+     --role arn:aws:iam::123456789:role/lambda-execution-role \
+     --handler index.lambda_handler \
+     --zip-file fileb://function.zip \
+     --region us-east-1
+   ```
+
+3. **Create API Gateway:**
+   ```bash
+   # Create REST API
+   API_ID=$(aws apigateway create-rest-api \
+     --name lab-todo-api \
+     --region us-east-1 | jq -r '.id')
+   
+   # Get resource ID
+   RESOURCE_ID=$(aws apigateway get-resources --rest-api-id $API_ID --region us-east-1 | jq -r '.items[0].id')
+   
+   # Create POST method
+   aws apigateway put-method \
+     --rest-api-id $API_ID \
+     --resource-id $RESOURCE_ID \
+     --http-method POST \
+     --authorization-type NONE \
+     --region us-east-1
+   
+   # Create integration with Lambda
+   aws apigateway put-integration \
+     --rest-api-id $API_ID \
+     --resource-id $RESOURCE_ID \
+     --http-method POST \
+     --type AWS_PROXY \
+     --integration-http-method POST \
+     --uri arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789:function:lab-todo-api/invocations \
+     --region us-east-1
+   
+   # Deploy
+   aws apigateway create-deployment \
+     --rest-api-id $API_ID \
+     --stage-name prod \
+     --region us-east-1
+   ```
+
+4. **Test:**
+   ```bash
+   API_URL="https://$API_ID.execute-api.us-east-1.amazonaws.com/prod"
+   
+   # Create todo
+   curl -X POST $API_URL \
+     -H "Content-Type: application/json" \
+     -d '{"title": "Learn AWS"}'
+   
+   # Get todos
+   curl -X GET $API_URL
+   ```
+
+**Interview Connection:** Explain Lambda cold starts, API Gateway caching, DynamoDB consistency.
+
+---
+
+## INTERMEDIATE LABS
+
+### Lab 3: Multi-Region EKS Cluster with Failover
+
+**Objective:** Deploy EKS in 2 regions, set up Route53 failover, demonstrate disaster recovery.
+
+**Duration:** 4–5 hours.
+
+**Key Concepts:**
+- Multi-region architecture.
+- Route53 health checks and failover routing.
+- Cross-region RDS replication.
+
+**Steps (High-Level):**
+
+1. Create EKS cluster in us-east-1.
+2. Deploy application to cluster.
+3. Create EKS cluster in us-west-2.
+4. Replicate application.
+5. Set up RDS global database (replication).
+6. Configure Route53 failover.
+7. Simulate region failure; verify automatic failover.
+
+**Terraform Template:**
+```hcl
+# Modules for multi-region setup
+module "eks_us_east" {
+  source = "./modules/eks"
+  region = "us-east-1"
+}
+
+module "eks_us_west" {
+  source = "./modules/eks"
+  region = "us-west-2"
+}
+
+module "route53_failover" {
+  source = "./modules/route53"
+  
+  primary_region_endpoint = module.eks_us_east.alb_dns
+  secondary_region_endpoint = module.eks_us_west.alb_dns
+}
+```
+
+**Interview Connection:** Explain RPO/RTO, consistency across regions, traffic failover.
+
+---
+
+## ADVANCED LABS
+
+### Lab 4: Implement Canary Deployment with GitOps
+
+**Objective:** Use Fluxv2 (GitOps tool) to manage EKS deployments with canary traffic shifting.
+
+**Duration:** 6–8 hours.
+
+**Key Concepts:**
+- GitOps workflow.
+- Canary deployments (5% → 25% → 100% traffic).
+- Automated rollback on error rate spike.
+
+**Tools:** Flux, Flagger, Prometheus, Grafana.
+
+**Interview Connection:** Explain CI/CD pipeline, blue-green vs canary, observability-driven deployments.
+
+---
+
+## EXPERT CAPSTONE PROJECTS
+
+### Project 1: Build a Distributed Metrics Collection System
+
+**Objective:** Collect metrics from 100+ services, store in time-series database, query for dashboards.
+
+**Architecture:**
+- **Collection:** Prometheus scrape targets.
+- **Storage:** Amazon Managed Prometheus (AMP) or self-hosted Prometheus + S3.
+- **Visualization:** Grafana.
+- **Scaling:** ~1M metrics/minute.
+
+**Complexity:** Expert-level. Requires understanding of:
+- Prometheus architecture and relabeling.
+- Time-series database optimization.
+- High-cardinality metrics handling.
+- Cost optimization (compress, downsample).
+
+**Interview Connection:** Ask about this project during system design rounds. Interviewers test:
+- Understanding of observability at scale.
+- Cost-performance trade-offs.
+- Operational insights (what metrics matter).
+
+---
+
+### Project 2: Design a Production-Ready ML Pipeline on AWS
+
+**Objective:** Train ML model, deploy to production, enable A/B testing.
+
+**Architecture:**
+- **Data:** S3 data lake.
+- **Processing:** SageMaker Processing jobs (Spark).
+- **Training:** SageMaker Training (auto-scaling).
+- **Model Registry:** SageMaker Model Registry.
+- **Serving:** SageMaker Endpoints or Lambda (real-time inference).
+- **A/B Testing:** Route 10% traffic to new model.
+- **Monitoring:** CloudWatch + SageMaker Model Monitor.
+
+**Complexity:** Expert-level. Requires understanding of:
+- Model lifecycle management.
+- Data pipeline orchestration (Step Functions).
+- Cost optimization (spot instances for training).
+- Compliance (model explainability, bias detection).
+
+**Interview Connection:** Demonstrates end-to-end ownership. Interviewers ask:
+- How do you handle model drift?
+- How do you perform canary deployment of models?
+- Cost of model serving at scale?
+
+---
+
+## LABS CHECKLIST
+
+| Lab | Duration | Cost | Skills | Difficulty |
+|-----|----------|------|--------|------------|
+| Deploy ECS App | 2h | $3–5 | ECS, ALB, VPC | Beginner |
+| Lambda API | 1.5h | $1–2 | Lambda, DynamoDB, API Gateway | Beginner |
+| Multi-Region EKS | 5h | $10–15 | EKS, RDS, Route53 | Intermediate |
+| Canary Deployment | 7h | $5–10 | GitOps, Flagger, Prometheus | Advanced |
+| Metrics System | 15h | $20–50 | Prometheus, Grafana, Time-series | Expert |
+| ML Pipeline | 20h | $30–100 | SageMaker, Step Functions | Expert |
+
+**Recommended Learning Path:**
+1. Start with Beginner Labs (get comfortable with AWS).
+2. Do 1–2 Intermediate Labs (understand multi-region, failover).
+3. Pick 1 Advanced Lab that aligns with your interests.
+4. Optional: Capstone project for deep expertise.
+
+---
+
+## DOCUMENTATION LINKS
+
+- [AWS Skill Builder (Free Labs)](https://skillbuilder.aws.com/)
+- [AWS Workshops](https://workshops.aws/)
+- [Terraform AWS Provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
+- [EKS Best Practices Guide](https://aws.github.io/aws-eks-best-practices/)
+- [AWS Well-Architected Framework](https://docs.aws.amazon.com/wellarchitected/)
+
