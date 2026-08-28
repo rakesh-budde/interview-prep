@@ -1,715 +1,718 @@
-# Kubernetes Interview Preparation Prompt - FAANG Level (>50 LPA)
+Act as a Principal Kubernetes Architect, CNCF Trainer, Kubernetes Maintainer, and Senior Interviewer with 20+ years of experience.
 
-## Objective
-Generate a comprehensive, production-grade Kubernetes interview preparation guide covering:
-- Deep system internals (how Kubernetes works under the hood)
-- Architecture patterns for scale (1000+ nodes, 50,000+ pods)
-- Real troubleshooting scenarios from production environments
-- Hands-on exercises with step-by-step solutions
-- Design questions for senior/principal engineer interviews
+Your goal is to prepare me for Senior Kubernetes Engineer, Site Reliability Engineer (SRE), Platform Engineer, DevOps Engineer, Cloud Architect, Staff Engineer, and FAANG/MANGA-level interviews.
 
-## Target Audience
-- Senior DevOps Engineers (5+ years)
-- Site Reliability Engineers (SRE)
-- Platform Engineers
-- Cloud Infrastructure Engineers
-- Targeting FAANG/MANGA companies with compensation >50 LPA
+Teach Kubernetes from absolute fundamentals to expert-level internals, covering every topic with the depth required to answer a staff or principal engineer interview question without hesitation.
 
 ---
 
-## SECTION 1: CONTROL PLANE INTERNALS (25% of questions)
-
-### 1.1 API Server Deep Dive
-Cover these topics with system-level depth:
-
-**Request Flow Analysis:**
-- Complete request lifecycle: Authentication → Authorization → Admission → Validation → etcd
-- Admission controller types: Mutating vs Validating webhooks
-- API aggregation layer and custom API servers
-- Watch mechanism and informer pattern (how clients stay in sync)
-- API priority and fairness (APF) - rate limiting requests
-- Audit logging configuration and analysis
-
-**Interview Questions to Include:**
-- "Walk me through what happens when you run `kubectl apply -f deployment.yaml`"
-- "How does the API server handle 10,000 concurrent watch connections?"
-- "Design an admission webhook that enforces resource quotas"
-- "Explain the difference between optimistic and pessimistic concurrency in K8s"
-
-**Hands-on Exercise:**
-- Set up custom admission webhook from scratch
-- Analyze API server audit logs to debug permission issues
-- Configure API priority and fairness for multi-tenant cluster
-
----
-
-### 1.2 etcd Deep Dive
-Cover at system internals level:
-
-**Raft Consensus Protocol:**
-- Leader election process with timing diagrams
-- Log replication and committed entries
-- Quorum requirements (why 3/5/7 nodes?)
-- Split-brain scenarios and resolution
-- etcd performance tuning (disk IOPS, network latency)
-
-**Data Storage:**
-- How Kubernetes objects are stored in etcd (key structure)
-- etcd compaction and defragmentation
-- Backup strategies (snapshot vs continuous backup)
-- Disaster recovery procedures
-
-**Interview Questions:**
-- "Your etcd cluster has 2 of 3 nodes down. What happens? How do you recover?"
-- "etcd is consuming 100GB disk. How do you investigate and fix?"
-- "Design etcd backup strategy for 99.99% availability"
-- "Explain etcd MVCC and how it affects Kubernetes watches"
-
-**Hands-on Exercise:**
-- Perform etcd backup and restore on running cluster
-- Simulate etcd leader failure and observe recovery
-- Use etcdctl to directly query cluster state
-
----
-
-### 1.3 Scheduler Deep Dive
-Cover algorithm and extension:
-
-**Scheduling Algorithm:**
-- Filtering phase: Which nodes can run this pod?
-- Scoring phase: Which node is best?
-- Default predicates and priorities
-- Resource calculation (requests vs limits)
-- Node affinity, pod affinity, anti-affinity
-- Taints and tolerations internals
-
-**Advanced Scheduling:**
-- Custom schedulers and multi-scheduler setup
-- Scheduler extenders and webhooks
-- Descheduler for rebalancing
-- Gang scheduling for ML workloads
-- Topology-aware scheduling
-
-**Interview Questions:**
-- "Pod is Pending for 10 minutes. Walk through your debugging process"
-- "Design scheduling for ML training jobs requiring 8 GPUs together"
-- "How would you implement bin-packing vs spreading across nodes?"
-- "Explain scheduler preemption - when and how does it work?"
-
-**Hands-on Exercise:**
-- Write custom scheduler extender
-- Configure pod topology spread constraints
-- Debug scheduling failures with `kubectl describe` and scheduler logs
-
----
-
-### 1.4 Controller Manager Deep Dive
-Cover reconciliation patterns:
-
-**Controller Pattern:**
-- Informer/SharedInformer architecture
-- Work queue and rate limiting
-- Level-triggered vs edge-triggered reconciliation
-- Leader election for HA
-- Custom controller development patterns
-
-**Built-in Controllers:**
-- Deployment controller: Rolling update algorithm
-- ReplicaSet controller: Pod counting and reconciliation
-- StatefulSet controller: Ordered pod management
-- Job/CronJob controller: Completion tracking
-- Namespace controller: Finalizers and cleanup
-
-**Interview Questions:**
-- "A Deployment is stuck at 50% rollout. Debug it"
-- "Explain how StatefulSet maintains pod identity during updates"
-- "Design a controller that auto-scales based on custom metrics"
-- "What happens if controller-manager crashes during a rollout?"
-
-**Hands-on Exercise:**
-- Write custom controller using client-go
-- Implement leader election in your controller
-- Debug stuck Deployment rollouts
-
----
-
-## SECTION 2: NETWORKING DEEP DIVE (20% of questions)
-
-### 2.1 CNI (Container Network Interface)
-Cover implementation details:
-
-**CNI Specification:**
-- CNI plugin lifecycle (ADD/DEL/CHECK)
-- Network namespace setup
-- IP Address Management (IPAM)
-- CNI chaining for multiple plugins
-
-**Popular CNI Plugins:**
-- Calico: BGP routing, network policies, eBPF dataplane
-- Cilium: eBPF-based networking, observability, security
-- Flannel: Simple overlay networking (VXLAN)
-- AWS VPC CNI: Native VPC networking
-- Azure CNI: Azure VNet integration
-
-**Interview Questions:**
-- "Compare Calico vs Cilium - when would you choose each?"
-- "Pod can't reach another pod. Walk through network debugging"
-- "Design CNI for 10,000 node cluster with multiple availability zones"
-- "Explain how eBPF improves Kubernetes networking"
-
-**Hands-on Exercise:**
-- Deploy and compare Calico vs Cilium
-- Debug pod-to-pod connectivity issues
-- Analyze network policies with `calicoctl` or `cilium` CLI
-
----
-
-### 2.2 Service Networking
-Cover kube-proxy modes and alternatives:
-
-**kube-proxy Modes:**
-- iptables mode: Rule generation and performance
-- IPVS mode: When to use, configuration
-- eBPF mode (Cilium): Direct routing
-
-**Service Types:**
-- ClusterIP: Internal load balancing
-- NodePort: External access via node ports
-- LoadBalancer: Cloud integration
-- ExternalName: DNS CNAME
-- Headless services: Direct pod access
-
-**Interview Questions:**
-- "Explain the complete packet flow from client to pod via ClusterIP"
-- "Service returns 5xx intermittently. Debug it"
-- "Design service mesh for 500 microservices"
-- "Compare kube-proxy iptables vs IPVS for 10,000 services"
-
-**Hands-on Exercise:**
-- Trace packet flow using `tcpdump` and `iptables -L`
-- Configure IPVS mode and compare performance
-- Debug service endpoint issues
-
----
-
-### 2.3 Network Policies
-Cover implementation and patterns:
-
-**Policy Specification:**
-- Ingress vs Egress policies
-- Selector-based targeting
-- CIDR-based rules
-- Port-based rules
-- Default deny patterns
-
-**Interview Questions:**
-- "Implement zero-trust networking in Kubernetes"
-- "Application can't connect to database after NetworkPolicy change"
-- "Design network policy for PCI-DSS compliance"
-
-**Hands-on Exercise:**
-- Implement default-deny with explicit allow rules
-- Debug connectivity after policy changes
-- Test network policies with `netcat` and `curl`
-
----
-
-### 2.4 DNS (CoreDNS)
-Cover DNS resolution in Kubernetes:
-
-**DNS Architecture:**
-- CoreDNS configuration (Corefile)
-- Service DNS records (A, SRV)
-- Pod DNS records
-- Headless service DNS
-- External DNS integration
-
-**Interview Questions:**
-- "DNS resolution is slow (>100ms). Debug and fix"
-- "Explain DNS-based service discovery in Kubernetes"
-- "Pod can't resolve external domain names"
-
-**Hands-on Exercise:**
-- Debug DNS issues with `nslookup` and `dig`
-- Configure custom DNS policies
-- Scale CoreDNS for large clusters
-
----
-
-## SECTION 3: STORAGE DEEP DIVE (10% of questions)
-
-### 3.1 Persistent Volumes
-Cover CSI and storage patterns:
-
-**CSI (Container Storage Interface):**
-- CSI driver architecture
-- Volume lifecycle (provisioning, attaching, mounting)
-- Snapshots and cloning
-- Volume expansion
-
-**Storage Classes:**
-- Dynamic provisioning
-- Reclaim policies
-- Volume binding modes
-- Storage topology
-
-**Interview Questions:**
-- "PVC is stuck in Pending. Debug it"
-- "Design storage for StatefulSet with 1000 replicas"
-- "Explain volume attachment and mount process"
-- "Compare ReadWriteOnce vs ReadWriteMany access modes"
-
-**Hands-on Exercise:**
-- Deploy CSI driver and create storage class
-- Debug PVC provisioning failures
-- Implement volume snapshots
-
----
-
-## SECTION 4: SECURITY DEEP DIVE (15% of questions)
-
-### 4.1 Authentication & Authorization
-Cover RBAC and security contexts:
-
-**Authentication:**
-- X.509 client certificates
-- Bearer tokens (ServiceAccount tokens)
-- OIDC integration
-- Webhook token authentication
-
-**Authorization (RBAC):**
-- Role, ClusterRole, RoleBinding, ClusterRoleBinding
-- Aggregated ClusterRoles
-- RBAC evaluation logic
-- Least privilege patterns
-
-**Interview Questions:**
-- "Design RBAC for multi-tenant cluster"
-- "User can't create pods. Debug permissions"
-- "Implement break-glass access for emergencies"
-- "Explain ServiceAccount token projection and rotation"
-
-**Hands-on Exercise:**
-- Set up OIDC authentication with Azure AD/Okta
-- Audit RBAC permissions with `kubectl auth can-i`
-- Implement namespace isolation with RBAC
-
----
-
-### 4.2 Pod Security
-Cover PSA/PSS and runtime security:
-
-**Pod Security Standards:**
-- Privileged, Baseline, Restricted profiles
-- Pod Security Admission (PSA)
-- Migration from PodSecurityPolicy
-
-**Runtime Security:**
-- Seccomp profiles
-- AppArmor profiles
-- SELinux contexts
-- Read-only root filesystem
-- Non-root containers
-
-**Interview Questions:**
-- "Implement container security hardening checklist"
-- "Detect and prevent container escape"
-- "Design security policy for financial services"
-
-**Hands-on Exercise:**
-- Configure Pod Security Admission
-- Create custom seccomp profiles
-- Audit pod security with Falco
-
----
-
-### 4.3 Secrets Management
-Cover encryption and external secrets:
-
-**Built-in Secrets:**
-- Secrets storage in etcd
-- Encryption at rest
-- Secrets rotation strategies
-
-**External Secrets:**
-- HashiCorp Vault integration
-- AWS Secrets Manager
-- Azure Key Vault
-- External Secrets Operator
-
-**Interview Questions:**
-- "Secrets are visible in etcd. How do you encrypt them?"
-- "Design secrets management for 100 microservices"
-- "Implement automatic secrets rotation"
-
-**Hands-on Exercise:**
-- Configure etcd encryption
-- Set up External Secrets Operator with Vault
-- Implement secrets rotation without pod restart
-
----
-
-## SECTION 5: WORKLOADS DEEP DIVE (10% of questions)
-
-### 5.1 Pod Lifecycle
-Cover container lifecycle in detail:
-
-**Pod Phases:**
-- Pending, Running, Succeeded, Failed, Unknown
-- Container states: Waiting, Running, Terminated
-- Restart policies
-
-**Probes:**
-- Liveness, Readiness, Startup probes
-- Probe types: HTTP, TCP, Exec
-- Configuration best practices
-
-**Interview Questions:**
-- "Pod is CrashLoopBackOff. Debug systematically"
-- "Design health checks for database-dependent application"
-- "Explain the difference between liveness and readiness probes"
-
-**Hands-on Exercise:**
-- Debug various pod failure scenarios
-- Configure optimal probe settings
-- Implement graceful shutdown handlers
-
----
-
-### 5.2 Controllers
-Cover Deployment, StatefulSet, DaemonSet:
-
-**Deployment Strategies:**
-- RollingUpdate configuration
-- Recreate strategy
-- Blue-green with labels
-- Canary with Istio/Argo Rollouts
-
-**StatefulSet Patterns:**
-- Ordered pod creation/deletion
-- Stable network identities
-- Persistent storage per replica
-- Parallel pod management
-
-**Interview Questions:**
-- "Design zero-downtime deployment strategy"
-- "StatefulSet pod stuck in Terminating. Debug it"
-- "When would you use StatefulSet vs Deployment?"
-
-**Hands-on Exercise:**
-- Implement blue-green deployment
-- Debug stuck rollouts
-- Configure StatefulSet for database
-
----
-
-## SECTION 6: SCALING & PERFORMANCE (10% of questions)
-
-### 6.1 Autoscaling
-Cover HPA, VPA, Cluster Autoscaler:
-
-**Horizontal Pod Autoscaler:**
-- Metrics sources (resource, custom, external)
-- Scaling algorithm and stabilization
-- Custom metrics with Prometheus adapter
-
-**Vertical Pod Autoscaler:**
-- Recommendation vs auto-update modes
-- Resource estimation algorithm
-- Integration with HPA
-
-**Cluster Autoscaler:**
-- Scale-up triggers and delays
-- Scale-down conditions
-- Node group configuration
-
-**Interview Questions:**
-- "Design autoscaling for bursty traffic (10x spikes)"
-- "HPA is not scaling. Debug it"
-- "Compare HPA vs KEDA for event-driven scaling"
-
-**Hands-on Exercise:**
-- Configure HPA with custom metrics
-- Set up Cluster Autoscaler
-- Load test and observe scaling
-
----
-
-### 6.2 Resource Management
-Cover requests, limits, QoS:
-
-**Resource Model:**
-- CPU: millicores, throttling
-- Memory: bytes, OOM killer
-- Extended resources (GPUs)
-
-**QoS Classes:**
-- Guaranteed, Burstable, BestEffort
-- Eviction priority
-- OOM score adjustment
-
-**Interview Questions:**
-- "Pod is being OOM killed. Investigate and fix"
-- "Design resource allocation for multi-tenant cluster"
-- "Explain CPU throttling vs memory OOM"
-
-**Hands-on Exercise:**
-- Configure resource quotas and limit ranges
-- Debug CPU throttling issues
-- Implement priority-based eviction
-
----
-
-## SECTION 7: OBSERVABILITY (5% of questions)
-
-### 7.1 Logging
-Cover logging architecture:
-
-**Log Collection:**
-- Node-level logging (kubelet)
-- Cluster-level logging (Fluentd, Fluent Bit)
-- Application logging patterns
-
-**Interview Questions:**
-- "Design centralized logging for 1000-node cluster"
-- "Application logs are missing. Debug"
-
-**Hands-on Exercise:**
-- Deploy EFK/ELK stack
-- Configure log rotation
-- Implement structured logging
-
----
-
-### 7.2 Metrics & Monitoring
-Cover Prometheus and metrics pipeline:
-
-**Metrics Architecture:**
-- Prometheus operator
-- ServiceMonitor, PodMonitor
-- Recording rules and alerts
-- Grafana dashboards
-
-**Interview Questions:**
-- "Design monitoring for 500 microservices"
-- "Prometheus is OOM. Optimize it"
-
-**Hands-on Exercise:**
-- Deploy Prometheus operator
-- Create custom ServiceMonitor
-- Build SLO-based dashboards
-
----
-
-### 7.3 Tracing
-Cover distributed tracing:
-
-**Tracing Tools:**
-- Jaeger, Zipkin, Tempo
-- OpenTelemetry integration
-- Trace propagation
-
-**Interview Questions:**
-- "Debug latency issue across 10 microservices"
-- "Design observability for service mesh"
-
----
-
-## SECTION 8: TROUBLESHOOTING SCENARIOS (15% of questions)
-
-### Critical Production Scenarios
-
-Include 20+ detailed troubleshooting scenarios:
-
-1. **Pod stuck in Pending** - Resource issues, affinity, taints
-2. **Pod stuck in Terminating** - Finalizers, PDB, zombie processes
-3. **CrashLoopBackOff** - Application errors, missing config
-4. **ImagePullBackOff** - Registry auth, image not found
-5. **OOMKilled** - Memory leaks, resource limits
-6. **Evicted pods** - Node pressure, priority
-7. **Service not reachable** - Endpoints, network policies
-8. **DNS resolution failures** - CoreDNS issues
-9. **Slow pod startup** - Image size, init containers
-10. **Node NotReady** - Kubelet issues, disk pressure
-11. **etcd leader election loops** - Network issues
-12. **API server timeouts** - Resource exhaustion
-13. **Certificate expiration** - Kubeadm certificates
-14. **PVC stuck in Pending** - Storage class, provisioner
-15. **Ingress not routing** - Controller, annotations
-16. **HPA not scaling** - Metrics server, thresholds
-17. **StatefulSet stuck during update** - Partition, PDB
-18. **Job never completes** - Backoff limit, parallelism
-19. **Secret not mounted** - ServiceAccount, RBAC
-20. **Network policy blocking traffic** - Policy debugging
-
-For each scenario include:
-- Symptoms and error messages
-- Step-by-step debugging commands
-- Root cause analysis
-- Fix and prevention
-
----
-
-## SECTION 9: SYSTEM DESIGN (10% of questions)
-
-### Design Problems
-
-Include 10+ design questions:
-
-1. **Design Kubernetes cluster for 10,000 nodes**
-   - Control plane sizing
-   - etcd optimization
-   - Network architecture
-   - Monitoring at scale
-
-2. **Design multi-tenant Kubernetes platform**
-   - Namespace isolation
-   - Resource quotas
-   - Network policies
-   - RBAC design
-
-3. **Design GitOps pipeline for 100 microservices**
-   - ArgoCD/Flux architecture
-   - Promotion strategies
-   - Rollback procedures
-
-4. **Design disaster recovery for stateful applications**
-   - Backup strategies
-   - Cross-region replication
-   - RTO/RPO requirements
-
-5. **Design Kubernetes for machine learning workloads**
-   - GPU scheduling
-   - Distributed training
-   - Model serving
-
-6. **Design service mesh for 500 microservices**
-   - Istio/Linkerd architecture
-   - Traffic management
-   - Security policies
-
-7. **Design Kubernetes security for regulated industry**
-   - Compliance requirements
-   - Audit logging
-   - Encryption
-
-8. **Design Kubernetes cost optimization strategy**
-   - Resource right-sizing
-   - Spot/preemptible nodes
-   - Cluster autoscaling
-
-9. **Design Kubernetes upgrade strategy for 0 downtime**
-   - Node upgrade patterns
-   - PDB configuration
-   - Testing procedures
-
-10. **Design Kubernetes for edge computing**
-    - Lightweight distributions
-    - Intermittent connectivity
-    - Resource constraints
-
----
-
-## SECTION 10: HANDS-ON LABS (Include 30+ exercises)
-
-### Lab Categories
-
-**Cluster Setup:**
-- Deploy multi-node cluster with kubeadm
-- Set up highly available control plane
-- Configure etcd cluster
-
-**Workloads:**
-- Deploy complex microservices application
-- Implement canary deployment
-- Configure StatefulSet for database
-
-**Networking:**
-- Set up CNI and compare performance
-- Implement network policies
-- Configure Ingress with TLS
-
-**Storage:**
-- Deploy CSI driver
-- Configure dynamic provisioning
-- Implement backup with Velero
-
-**Security:**
-- Harden cluster with CIS benchmarks
-- Set up OIDC authentication
-- Implement Pod Security Standards
-
-**Observability:**
-- Deploy Prometheus stack
-- Create custom dashboards
-- Set up distributed tracing
-
-**Troubleshooting:**
-- Debug pod scheduling failures
-- Investigate network connectivity
-- Analyze performance bottlenecks
-
----
-
-## OUTPUT FORMAT
-
-Generate the content in this structure:
+# OUTPUT RULES
+
+## File structure
+
+Generate one README.md file per section. Begin every section file with:
+
+1. A short paragraph describing what the section covers.
+2. A **Subtopic Index** as a Markdown hyperlink list — one link per topic, pointing to its anchor
+   within the same file. Example:
+   ```markdown
+   ## Subtopic Index
+   - [Virtual Machines](#virtual-machines)
+   - [Containers](#containers)
+   - [PID Namespace](#pid-namespace)
+   ```
+   Every topic listed in the section must appear as a hyperlink here.
+
+## Topic explanation standard
+
+For every individual topic write a single, continuous, depth-first narrative. Do NOT use a rigid
+"What / Why / How" label pattern. Instead, open with a clear statement of what the topic is,
+immediately flow into the internal mechanics, data structures, kernel or API-level detail, component
+interactions, control/data flow, and failure behavior — all as one coherent expert explanation a
+senior interviewer would give to a junior engineer who asked "explain this properly."
+
+The explanation must cover, within the prose, all of the following without separate headings for each:
+
+- What the concept is and the problem it solves
+- The detailed internal mechanism (kernel calls, data structures, algorithms, state machines,
+  gRPC/REST APIs, queue behavior, cgroup/namespace operations, packet flows — whatever is relevant)
+- All Kubernetes objects, controllers, and components involved and how they interact
+- Control flow and data flow (include a Mermaid or ASCII diagram when the flow is non-trivial)
+- Key API fields, flags, annotations, or configuration knobs that change behavior
+- Performance implications: latency, throughput, resource cost, bottlenecks
+- Security implications: threat model, attack surface, hardening
+- Scalability implications: behavior under load, at-scale limits, what breaks first
+- Failure modes, symptoms, diagnosis steps, and recovery
+- Production best practices
+- Real-world incident or scenario that shows the concept in action
+
+After the prose, add:
 
 ```
-kubernetes/
-├── README.md                           # Index with study guide
-├── 01-CONTROL-PLANE-INTERNALS.md      # API Server, etcd, Scheduler, Controllers
-├── 02-NETWORKING-DEEP-DIVE.md          # CNI, Services, DNS, Network Policies
-├── 03-STORAGE-INTERNALS.md             # CSI, PV/PVC, Storage Classes
-├── 04-SECURITY-HARDENING.md            # RBAC, Pod Security, Secrets
-├── 05-WORKLOADS-LIFECYCLE.md           # Pods, Deployments, StatefulSets
-├── 06-SCALING-PERFORMANCE.md           # HPA, VPA, Resource Management
-├── 07-OBSERVABILITY-STACK.md           # Logging, Metrics, Tracing
-├── 08-TROUBLESHOOTING-GUIDE.md         # 20+ production scenarios
-├── 09-SYSTEM-DESIGN-PATTERNS.md        # 10+ design questions
-├── 10-HANDS-ON-LABS.md                 # 30+ practical exercises
-├── 11-INTERVIEW-QUESTIONS.md           # 500+ categorized questions
-└── 12-QUICK-REFERENCE.md               # Commands, cheatsheets, diagrams
+### Key commands
 ```
+with the most important kubectl / crictl / etcdctl / iptables / cgroup commands for this topic,
+each annotated with what it shows and when to use it.
+
+## Per-section closing
+
+After all topics in a section add:
+
+### Interview Questions
+
+20 questions total:
+- 8 conceptual/internals questions with full model answers
+- 6 scenario or troubleshooting questions with reasoning walkthrough
+- 6 FAANG-level deep-dive questions that require source-code or kernel knowledge
+
+### Hands-On Labs
+
+3–5 practical exercises with objective, setup, tasks, and expected outcome.
+
+### Production Incidents
+
+2–3 real-style incident narratives with symptom, investigation, root cause, recovery, and prevention.
 
 ---
 
-## QUALITY REQUIREMENTS
+# STYLE REQUIREMENTS
 
-1. **Depth:** Every topic explained at system internals level
-2. **Diagrams:** ASCII architecture diagrams for complex concepts
-3. **Code:** Real kubectl commands, YAML manifests, Go snippets
-4. **Troubleshooting:** Step-by-step debugging with actual commands
-5. **Production-ready:** Patterns used in real 1000+ node clusters
-6. **Interview-focused:** Questions asked at Google, Amazon, Microsoft, Meta
-7. **Hands-on:** Exercises that can be done on minikube/kind/EKS/GKE
-8. **Current:** Kubernetes 1.28+ features and deprecations
-
----
-
-## WEIGHTAGE SUMMARY
-
-| Topic | Interview Weight | Questions |
-|-------|-----------------|-----------|
-| Control Plane Internals | 25% | 125+ |
-| Networking | 20% | 100+ |
-| Security | 15% | 75+ |
-| Troubleshooting | 15% | 75+ |
-| System Design | 10% | 50+ |
-| Storage | 5% | 25+ |
-| Scaling & Performance | 5% | 25+ |
-| Observability | 5% | 25+ |
-
-Total: **500+ questions** with detailed answers
+- Write as if teaching a capable engineer, not a beginner, but do not skip foundational detail.
+- Prefer dense, accurate prose over bullet points within topic explanations.
+- Use ASCII or Mermaid diagrams for every non-trivial flow. Label every component.
+- Include actual YAML manifests, annotated on non-obvious fields.
+- Include executable CLI examples with realistic output or inline explanation.
+- Never say "this is outside the scope" or "covered elsewhere." Complete every topic in place.
+- Do not generate placeholder text. Write real content.
 
 ---
 
-## EXECUTE THIS PROMPT
+Do not skip any details.
+Assume I want mastery level understanding.
 
-Generate comprehensive content for each section with:
-- Theory explanation (system internals level)
-- ASCII diagrams for architecture
-- Interview questions (basic → expert)
-- Hands-on exercises with solutions
-- Troubleshooting scenarios with debugging steps
-- Production patterns and best practices
+Cover all topics below.
+
+=================================================
+SECTION 1: CONTAINER FUNDAMENTALS
+=================================================
+
+- Virtual Machines
+- Containers
+- Linux Namespaces
+- PID Namespace
+- Network Namespace
+- Mount Namespace
+- UTS Namespace
+- IPC Namespace
+- User Namespace
+- cgroups v1/v2
+- OverlayFS
+- containerd
+- runc
+- CRI
+- OCI
+- Docker Architecture
+- Container Lifecycle
+- Container Startup Process
+- Container Runtime Internals
+
+Deep Dive:
+
+- What happens when docker run executes?
+- What happens when Kubernetes starts a container?
+- How namespaces are created?
+- How cgroups limit resources?
+- How OverlayFS works?
+
+=================================================
+SECTION 2: KUBERNETES ARCHITECTURE
+=================================================
+
+Cover:
+
+- History and Evolution
+- Design Principles
+- Declarative Architecture
+- Desired State Model
+- Control Loops
+- Reconciliation
+
+Architecture:
+
+- Control Plane
+- Data Plane
+- Worker Nodes
+
+Explain:
+
+- Request lifecycle
+- Cluster startup sequence
+- Component interactions
+
+Deep Dive:
+
+- Why Kubernetes was designed this way?
+- Why desired state model?
+- Why reconciliation loop?
+
+=================================================
+SECTION 3: API SERVER
+=================================================
+
+Explain in detail:
+
+- kube-apiserver
+- API Aggregation
+- Authentication
+- Authorization
+- Admission Controllers
+- Mutating Admission
+- Validating Admission
+- API Priority and Fairness
+- API Lifecycle
+
+Deep Dive:
+
+- Request flow endpoint to etcd
+- Serialization
+- Deserialization
+- Watch mechanism
+- Informers
+- Caching
+
+Questions:
+
+- What happens when kubectl apply is executed?
+
+=================================================
+SECTION 4: ETCD
+=================================================
+
+Cover:
+
+- Architecture
+- Raft Algorithm
+- Leader Election
+- WAL
+- Snapshots
+- Quorum
+- Consistency Models
+
+Deep Dive:
+
+- Read path
+- Write path
+- Failure handling
+- Backup/Restore
+- Defragmentation
+
+Questions:
+
+- What happens if etcd loses quorum?
+- How Kubernetes depends on etcd?
+
+=================================================
+SECTION 5: SCHEDULER INTERNALS
+=================================================
+
+Cover:
+
+- Scheduling Cycle
+- Binding Cycle
+- Filtering
+- Scoring
+- Affinity
+- Anti-Affinity
+- Taints
+- Tolerations
+
+Deep Dive:
+
+- Scheduler Plugins
+- Framework
+- Algorithms
+- Extenders
+
+Questions:
+
+- Why pod remains Pending?
+- How scheduler selects node?
+
+=================================================
+SECTION 6: CONTROLLER MANAGER
+=================================================
+
+Cover:
+
+- Reconciliation Loop
+- Deployment Controller
+- ReplicaSet Controller
+- StatefulSet Controller
+- DaemonSet Controller
+- Job Controller
+- CronJob Controller
+- Endpoint Controller
+- Node Controller
+
+Deep Dive:
+
+- Controller Pattern
+- Informers
+- Shared Cache
+- Event Handling
+
+Questions:
+
+- What happens during Deployment rollout?
+
+=================================================
+SECTION 7: KUBELET INTERNALS
+=================================================
+
+Cover:
+
+- Pod Lifecycle
+- Pod Sync Loop
+- PLEG
+- CRI Interaction
+- Container Lifecycle
+
+Deep Dive:
+
+- Pod startup sequence
+- Readiness
+- Liveness
+- Startup probes
+
+Questions:
+
+- What happens after scheduler assigns pod?
+
+=================================================
+SECTION 8: NETWORKING
+=================================================
+
+Cover:
+
+- Kubernetes Networking Model
+- Flat Networking
+- CNI
+- Service Networking
+
+Deep Dive:
+
+- Pod-to-Pod
+- Pod-to-Service
+- External-to-Service
+- DNS Resolution
+
+Explain:
+
+- kube-proxy
+- iptables
+- IPVS
+- eBPF
+- Calico
+- Cilium
+- Flannel
+
+Questions:
+
+- Trace packet flow completely.
+
+=================================================
+SECTION 9: STORAGE
+=================================================
+
+Cover:
+
+- Volumes
+- Persistent Volumes
+- PVC
+- StorageClass
+- CSI
+
+Deep Dive:
+
+- Dynamic Provisioning
+- Volume Attachment
+- Mount Process
+
+Questions:
+
+- PVC stuck Pending?
+- Volume attachment failures?
+
+=================================================
+SECTION 10: WORKLOADS
+=================================================
+
+Pods
+ReplicaSet
+Deployment
+StatefulSet
+DaemonSet
+Job
+CronJob
+
+Deep Dive:
+
+Design decisions
+
+When to use each workload
+
+Failure scenarios
+
+=================================================
+SECTION 11: SERVICES & INGRESS
+=================================================
+
+ClusterIP
+NodePort
+LoadBalancer
+ExternalName
+Headless Service
+
+Ingress
+
+Ingress Controllers:
+
+- NGINX
+- Traefik
+- HAProxy
+- AGIC
+
+Gateway API
+
+Questions:
+
+- Request flow end-to-end.
+
+=================================================
+SECTION 12: DNS
+=================================================
+
+CoreDNS
+
+Deep Dive:
+
+- Service Discovery
+- DNS Resolution
+- Stub Domains
+- Forwarding
+- Caching
+
+Questions:
+
+- DNS failures troubleshooting.
+
+=================================================
+SECTION 13: SECURITY
+=================================================
+
+Authentication
+Authorization
+
+RBAC
+
+Security Context
+
+Pod Security Standards
+
+Secrets
+
+Encryption
+
+Service Accounts
+
+OIDC
+
+mTLS
+
+Network Policies
+
+Admission Controllers
+
+OPA Gatekeeper
+
+Kyverno
+
+Questions:
+
+- How to secure production clusters?
+
+=================================================
+SECTION 14: OBSERVABILITY
+=================================================
+
+Metrics
+
+Logs
+
+Tracing
+
+Prometheus
+
+Grafana
+
+OpenTelemetry
+
+Alertmanager
+
+Deep Dive:
+
+Monitoring control plane
+
+Monitoring worker nodes
+
+Monitoring applications
+
+=================================================
+SECTION 15: SCALING
+=================================================
+
+HPA
+VPA
+Cluster Autoscaler
+Karpenter
+
+Deep Dive:
+
+Algorithms
+
+Metrics
+
+Decision making process
+
+=================================================
+SECTION 16: HIGH AVAILABILITY
+=================================================
+
+Control Plane HA
+
+etcd HA
+
+Worker Node HA
+
+Multi AZ
+
+Multi Region
+
+Disaster Recovery
+
+Backup Strategy
+
+=================================================
+SECTION 17: TROUBLESHOOTING
+=================================================
+
+Cover systematic troubleshooting.
+
+Pod Issues
+
+Node Issues
+
+Storage Issues
+
+Network Issues
+
+DNS Issues
+
+Scheduler Issues
+
+API Server Issues
+
+etcd Issues
+
+Performance Issues
+
+For each issue:
+
+Symptoms
+Root Causes
+Investigation
+Fixes
+
+=================================================
+SECTION 18: KUBERNETES DESIGN PATTERNS
+=================================================
+
+Sidecar
+
+Adapter
+
+Ambassador
+
+Init Container Patterns
+
+Operator Pattern
+
+Controller Pattern
+
+=================================================
+SECTION 19: ADVANCED TOPICS
+=================================================
+
+Operators
+
+CRD
+
+Admission Webhooks
+
+Service Mesh
+
+Istio
+
+Linkerd
+
+Envoy
+
+Gateway API
+
+eBPF
+
+Cilium
+
+Multi Cluster
+
+Federation
+
+GitOps
+
+ArgoCD
+
+FluxCD
+
+KEDA
+
+=================================================
+SECTION 20: KUBERNETES SOURCE CODE & INTERNALS
+=================================================
+
+Cover major source-code packages:
+
+kube-apiserver
+
+kubelet
+
+scheduler
+
+controller-manager
+
+etcd interactions
+
+informers
+
+workqueues
+
+client-go
+
+controller-runtime
+
+Explain:
+
+- Internal control loops
+- Watchers
+- Shared Informers
+- DeltaFIFO
+- Workqueues
+
+=================================================
+SECTION 21: PRODUCTION SCENARIOS
+=================================================
+
+Give 100 real production scenarios.
+
+Examples:
+
+- Pod not starting
+- Massive node failure
+- DNS outage
+- etcd corruption
+- API server overload
+- Memory leak
+- Network partition
+- Certificate expiration
+- Storage outage
+
+=================================================
+SECTION 22: FAANG INTERVIEW PREPARATION
+=================================================
+
+Provide:
+
+- Top 200 Kubernetes Interview Questions
+- Staff Engineer Questions
+- Principal Engineer Questions
+- SRE Scenarios
+- Architecture Design Questions
+- Whiteboard Exercises
+- System Design Interviews
+
+=================================================
+SECTION 23: HANDS-ON LABS
+=================================================
+
+Provide labs for:
+
+Minikube
+
+Kind
+
+AKS
+
+EKS
+
+GKE
+
+Production Clusters
+
+Each lab should have:
+
+Objectives
+Architecture
+Setup
+Tasks
+Expected Outcome
+Troubleshooting
+
+My Recommendation for Your Preparation Order
+
+Given your background as a DevOps Engineer managing AKS clusters, I'd study in this order:
+
+Container Internals
+Kubernetes Architecture
+API Server
+etcd
+Scheduler Internals
+Controller Manager
+Kubelet
+Networking (Very Important)
+Storage
+Security
+Troubleshooting
+Observability
+Autoscaling
+HA & DR
+CRDs and Operators
+Service Mesh
+Source Code Internals
+System Design Interviews
+
+For FAANG-level interviews, the highest-yield topics are:
+
+Pod lifecycle end-to-end
+kubectl apply internals
+Scheduler internals
+etcd and Raft
+Informers and Watch mechanism
+Kubelet internals
+CNI packet flow
+Services and kube-proxy
+Network policies
+CRDs & Operators
+Cluster scaling
+Production troubleshooting
+Kubernetes architecture design
+
+The final output should be a polished README.md per section with detailed explanation that can serve as the ultimate Azure interview preparation guide for a 5-year experienced DevOps Engineer targeting FAANG-level companies.
