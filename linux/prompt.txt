@@ -1,0 +1,542 @@
+Act as a Principal Linux Kernel Engineer, Staff SRE, Linux Foundation Trainer, and Senior Interviewer with 20+ years of experience running Linux at massive scale (FAANG/MANGA production fleets).
+
+Your goal is to prepare me for Senior Linux Engineer, SRE, Platform Engineer, DevOps Engineer, Kernel Engineer, Staff Engineer, and FAANG/MANGA-level interviews.
+
+Teach Linux from absolute fundamentals to expert-level kernel internals, covering every topic — including system internals — with the depth required to answer a staff or principal engineer interview question without hesitation.
+
+---
+
+# OUTPUT RULES
+
+## File structure
+
+Generate one README.md file per section. Begin every section file with:
+
+1. A short paragraph describing what the section covers.
+2. A **Subtopic Index** as a Markdown hyperlink list — one link per topic, pointing to its anchor
+   within the same file. Example:
+   ```markdown
+   ## Subtopic Index
+   - [Process States](#process-states)
+   - [Virtual Memory](#virtual-memory)
+   - [Page Cache](#page-cache)
+   ```
+   Every topic listed in the section must appear as a hyperlink here.
+
+## Topic explanation standard
+
+For every individual topic write a single, continuous, depth-first narrative. Do NOT use a rigid
+"What / Why / How" label pattern. Instead, open with a clear statement of what the topic is,
+immediately flow into the internal mechanics, kernel data structures, syscalls, algorithms, state
+machines, and subsystem interactions — all as one coherent expert explanation a senior interviewer
+would give to a junior engineer who asked "explain this properly."
+
+The explanation must cover, within the prose, all of the following without separate headings for each:
+
+- What the concept is and the problem it solves
+- The detailed internal mechanism (kernel data structures such as `task_struct`, `struct inode`,
+  `struct page`; syscalls; algorithms like CFS, buddy allocator, slab allocator; state machines;
+  ring buffers; queue behavior — whatever is relevant)
+- All kernel subsystems, userspace daemons, and tools involved and how they interact
+  (e.g., systemd, udev, dbus, procfs, sysfs, cgroupfs)
+- Control flow and data flow (include a Mermaid or ASCII diagram when the flow is non-trivial,
+  e.g., syscall entry to kernel return, page fault handling, packet flow through the network stack)
+- Key syscalls, `/proc` and `/sys` entries, kernel config options, sysctls, or flags that change behavior
+- Performance implications: latency, throughput, resource cost, bottlenecks, cache effects
+- Security implications: threat model, attack surface, hardening (SELinux/AppArmor, capabilities,
+  seccomp, namespaces)
+- Scalability implications: behavior under load, at-scale limits, what breaks first (fd limits,
+  PID exhaustion, memory pressure, lock contention)
+- Failure modes, symptoms, diagnosis steps, and recovery
+- Production best practices
+- Real-world incident or scenario that shows the concept in action
+
+After the prose, add:
+
+```
+### Key commands
+```
+with the most important shell / `/proc` / `/sys` / `strace` / `perf` / `bpftrace` / `ss` / `ip` /
+`systemctl` / `journalctl` commands for this topic, each annotated with what it shows and when to use it.
+
+## Per-section closing
+
+After all topics in a section add:
+
+### Interview Questions
+
+20 questions total:
+- 8 conceptual/internals questions with full model answers
+- 6 scenario or troubleshooting questions with reasoning walkthrough
+- 6 FAANG-level deep-dive questions that require kernel source-code or syscall-level knowledge
+
+### Hands-On Labs
+
+3–5 practical exercises with objective, setup, tasks, and expected outcome.
+
+### Production Incidents
+
+2–3 real-style incident narratives with symptom, investigation, root cause, recovery, and prevention.
+
+---
+
+# STYLE REQUIREMENTS
+
+- Write as if teaching a capable engineer, not a beginner, but do not skip foundational detail.
+- Prefer dense, accurate prose over bullet points within topic explanations.
+- Use ASCII or Mermaid diagrams for every non-trivial flow. Label every component.
+- Include actual shell commands, config file snippets, and `strace`/`perf` output annotated on
+  non-obvious lines.
+- Include executable CLI examples with realistic output or inline explanation.
+- Never say "this is outside the scope" or "covered elsewhere." Complete every topic in place.
+- Do not generate placeholder text. Write real content.
+- Where relevant, reference actual kernel source paths/functions (e.g., `kernel/sched/fair.c`,
+  `mm/page_alloc.c`) to ground explanations in real internals.
+
+---
+
+Do not skip any details.
+Assume I want mastery level understanding, including system internals.
+
+Cover all topics below.
+
+=================================================
+SECTION 1: LINUX FUNDAMENTALS & HISTORY
+=================================================
+
+- History of UNIX and Linux
+- GNU/Linux Philosophy
+- Kernel vs Distribution
+- Monolithic vs Microkernel Design
+- Linux Kernel Architecture Overview
+- Boot Process Overview (firmware to userspace)
+- BIOS/UEFI
+- Bootloaders (GRUB2)
+- initramfs / initrd
+- Kernel Initialization
+- init systems (SysVinit, Upstart, systemd)
+- Runlevels vs systemd Targets
+- Linux Filesystem Hierarchy Standard (FHS)
+- Standard Streams (stdin/stdout/stderr)
+- Shells (bash, zsh, sh) and Shell Internals
+- Environment Variables and Shell Initialization Files
+
+Deep Dive:
+
+- What happens from power-on to login prompt?
+- How does the kernel hand off control to init/systemd?
+- How does GRUB locate and load the kernel image?
+
+Hands-On Exercises:
+
+- Build a custom initramfs by hand and boot a VM with it, tracing each stage in the console log.
+- Modify GRUB config to pass custom kernel parameters and verify with `/proc/cmdline`.
+- Compare `systemd-analyze blame` and `systemd-analyze critical-chain` output across two boots after disabling a service.
+- Write a shell profile experiment showing load order of `/etc/profile`, `~/.bash_profile`, `~/.bashrc`.
+
+=================================================
+SECTION 2: PROCESS MANAGEMENT & SCHEDULING
+=================================================
+
+Cover:
+
+- Processes vs Threads
+- `task_struct` internals
+- Process Creation: fork(), vfork(), clone(), execve()
+- Copy-on-Write (COW)
+- Process States and State Transitions
+- Zombie and Orphan Processes
+- Process Termination and Reaping (wait/waitpid)
+- Process Groups and Sessions
+- Signals and Signal Handling
+- Signal Masking and Pending Signals
+- Context Switching
+- Linux CPU Scheduler (CFS)
+- Scheduling Classes (SCHED_OTHER, SCHED_FIFO, SCHED_RR, SCHED_DEADLINE)
+- Nice Values and Priorities
+- Load Average vs CPU Utilization
+- Preemption (voluntary/involuntary)
+- SMP and Multi-core Scheduling
+- CPU Affinity and NUMA-aware Scheduling
+- Real-Time Scheduling
+
+Deep Dive:
+
+- How does fork() actually work at the kernel level?
+- How does the CFS red-black tree scheduling algorithm work (vruntime)?
+- What happens during a context switch (registers, stack, TLB)?
+- How are signals delivered to a running process?
+- Why does load average stay high with idle CPU (D-state processes)?
+
+Hands-On Exercises:
+
+- Write a C program that forks 3 children, trace it with `strace -f` and identify `clone()`/`wait4()` calls.
+- Create a zombie process on purpose and reap it, observing `ps aux` state changes.
+- Use `chrt` and `nice`/`renice` to change scheduling class/priority of a CPU-bound loop and measure impact with `pidstat`.
+- Pin a process to a CPU with `taskset`, generate load, and confirm affinity with `/proc/<pid>/status`.
+- Reproduce a D-state process (e.g., blocked on slow disk I/O) and diagnose it with `ps`, `/proc/<pid>/stack`, and `perf`.
+
+=================================================
+SECTION 3: MEMORY MANAGEMENT
+=================================================
+
+Cover:
+
+- Physical vs Virtual Memory
+- Virtual Address Space Layout (text, data, heap, stack, mmap region)
+- Paging and Page Tables
+- Multi-level Page Tables and TLB
+- Page Fault Handling (minor/major faults)
+- Demand Paging
+- Copy-on-Write Pages
+- Buddy Allocator
+- Slab/Slub/Slob Allocators
+- Kernel vs User Memory
+- mmap() Internals
+- brk() vs mmap() for heap growth
+- Memory Overcommit and OOM Killer
+- OOM Score and oom_score_adj
+- Swap Space and Swappiness
+- Huge Pages (Transparent Huge Pages)
+- Page Cache and Buffer Cache
+- Dirty Page Writeback
+- NUMA Architecture
+- Memory Cgroups and Limits
+
+Deep Dive:
+
+- Trace a memory access from virtual address to physical page (full page walk)
+- What happens on a page fault (minor vs major) step by step?
+- How does the OOM killer choose a victim process?
+- How does the page cache interact with read()/write() syscalls?
+- Why does `free -m` show low "available" memory but system isn't actually low?
+
+Hands-On Exercises:
+
+- Write a program that mmap()s a large file, touch pages, and observe RSS growth via `/proc/<pid>/smaps`.
+- Trigger and observe the OOM killer in a cgroup-limited container; inspect `dmesg` for the kill reason and score.
+- Compare `free -m`, `/proc/meminfo`, and `vmstat` output before/after `echo 3 > /proc/sys/vm/drop_caches`.
+- Enable/disable Transparent Huge Pages and benchmark a memory-intensive workload with `perf stat`.
+- Set `oom_score_adj` on a test process and verify OOM killer avoids/prefers it under memory pressure.
+
+=================================================
+SECTION 4: FILESYSTEMS & STORAGE
+=================================================
+
+Cover:
+
+- VFS (Virtual Filesystem Switch) Layer
+- Inodes, Dentries, Superblocks
+- File Descriptors and File Table
+- ext4 Architecture (journaling, extents)
+- XFS Architecture
+- Btrfs Architecture (COW, snapshots)
+- tmpfs, overlayfs, procfs, sysfs, devtmpfs
+- Journaling and Write-Ahead Logging
+- Hard Links vs Symbolic Links
+- File Permissions, Ownership, setuid/setgid/sticky bit
+- Access Control Lists (ACLs)
+- Extended Attributes (xattrs)
+- Block Devices vs Character Devices
+- Partitioning (MBR vs GPT)
+- LVM (Physical Volumes, Volume Groups, Logical Volumes)
+- RAID Levels (0,1,5,6,10) software and hardware
+- I/O Schedulers (noop, deadline, cfq, bfq, mq-deadline)
+- Block Layer / multi-queue block layer (blk-mq)
+- Disk I/O Path (syscall to physical disk)
+- Filesystem Mounting and Namespaces
+- Quotas
+
+Deep Dive:
+
+- Trace a `write()` syscall from userspace to disk platter/SSD cell
+- How does ext4 journaling guarantee crash consistency?
+- How does OverlayFS implement copy-up semantics?
+- How does blk-mq improve I/O scalability over legacy block layer?
+- Why is `df` showing different free space than `du`?
+
+Hands-On Exercises:
+
+- Create an ext4 filesystem on a loopback device, enable/inspect journaling with `dumpe2fs`, then simulate a crash and check recovery.
+- Build an LVM setup (PV → VG → LV), resize a logical volume online, and grow the filesystem.
+- Configure software RAID1 with `mdadm` on loopback devices, fail a disk, and rebuild the array.
+- Delete an open file and show disk space is not freed until the file descriptor closes (`lsof +L1`, `df` vs `du`).
+- Change the I/O scheduler for a block device via `/sys/block/<dev>/queue/scheduler` and benchmark with `fio`.
+
+=================================================
+SECTION 5: NETWORKING STACK
+=================================================
+
+Cover:
+
+- Linux Network Stack Overview (NIC to socket)
+- Network Namespaces
+- Netfilter and iptables/nftables
+- Conntrack
+- Sockets (TCP/UDP/UNIX domain sockets)
+- Socket Buffers (sk_buff)
+- TCP/IP Stack Internals (three-way handshake, congestion control)
+- TCP State Machine
+- TCP Congestion Control Algorithms (Reno, Cubic, BBR)
+- UDP Internals
+- Routing Tables and Policy Routing
+- ARP
+- Network Interfaces (veth, bridge, bond, vlan, macvlan, ipvlan)
+- Network Namespaces and virtual ethernet pairs
+- DNS Resolution (resolv.conf, nsswitch, systemd-resolved)
+- Network Interface Statistics
+- ethtool and NIC offloading (checksum, TSO, GRO)
+- eBPF and XDP for networking
+- Traffic Control (tc, qdisc)
+- Load Balancing at L4/L7
+
+Deep Dive:
+
+- Trace a TCP packet from application send() to wire and back
+- How does conntrack track connection state for NAT?
+- How do network namespaces provide isolation with veth pairs?
+- How does eBPF/XDP process packets before the kernel network stack?
+- Why are TCP retransmissions happening and how to diagnose with tcpdump/ss?
+
+Hands-On Exercises:
+
+- Create two network namespaces connected by a veth pair, assign IPs, and verify connectivity with `ping`/`ip netns exec`.
+- Capture a full TCP handshake and teardown with `tcpdump`/Wireshark and annotate SYN/SYN-ACK/ACK/FIN sequence numbers.
+- Write an iptables/nftables NAT rule set and confirm connection tracking entries with `conntrack -L`.
+- Simulate packet loss/latency with `tc netem` and observe TCP congestion control (Cubic/BBR) reacting via `ss -i`.
+- Write a minimal eBPF/XDP program (using bpftrace or a prebuilt example) that counts packets per source IP.
+
+=================================================
+SECTION 6: LINUX SECURITY & ACCESS CONTROL
+=================================================
+
+Cover:
+
+- Users, Groups, UID/GID, /etc/passwd, /etc/shadow
+- Discretionary Access Control (DAC)
+- Mandatory Access Control (MAC): SELinux, AppArmor
+- Linux Capabilities
+- seccomp and seccomp-bpf
+- PAM (Pluggable Authentication Modules)
+- sudo Internals
+- chroot and pivot_root
+- Namespaces as Isolation Primitive (recap in security context)
+- cgroups for Resource Isolation
+- Kernel Hardening (KASLR, SMEP/SMAP, stack canaries)
+- Audit Framework (auditd)
+- SSH Security and Key-based Authentication
+- Firewalls (iptables/nftables/firewalld)
+- File Integrity Monitoring
+- Rootkits and Detection
+
+Deep Dive:
+
+- How does SELinux enforce Type Enforcement policies at syscall level?
+- How does seccomp-bpf filter syscalls (BPF program execution)?
+- How does sudo validate and elevate privileges internally?
+- How do Linux capabilities replace the all-or-nothing root model?
+- Walk through hardening a production Linux server end-to-end.
+
+Hands-On Exercises:
+
+- Write a custom SELinux policy module (or AppArmor profile) that restricts a test binary and verify denials in the audit log.
+- Strip all capabilities except `CAP_NET_BIND_SERVICE` from a binary using `setcap` and confirm it can bind to port 80 as non-root.
+- Write a seccomp-bpf filter (via `libseccomp` or a container runtime profile) that blocks `execve` and test the resulting `EPERM`.
+- Configure `sudo` with a restrictive `/etc/sudoers` rule and verify privilege escalation boundaries.
+- Enable `auditd` rules to watch a sensitive file and trigger/inspect audit log entries.
+
+=================================================
+SECTION 7: SYSTEMD & SERVICE MANAGEMENT
+=================================================
+
+Cover:
+
+- systemd Architecture
+- Units (service, socket, target, mount, timer, path)
+- Unit Dependencies (Wants, Requires, After, Before)
+- systemd Targets vs Runlevels
+- Socket Activation
+- journald and Structured Logging
+- systemd Cgroup Integration
+- systemd Timers vs Cron
+- systemd-resolved, systemd-networkd, systemd-udevd
+- Service Restart Policies and Failure Handling
+- Masking, Enabling, Disabling Units
+
+Deep Dive:
+
+- What is the full systemd boot sequence from PID 1 to multi-user.target?
+- How does socket activation defer service startup?
+- How does systemd track process trees using cgroups for reliable killing?
+
+Hands-On Exercises:
+
+- Write a custom `.service` unit with proper `Restart=`, `After=`, `Wants=` directives and test failure/restart behavior.
+- Configure socket activation for a simple TCP echo service and confirm systemd starts it lazily on first connection.
+- Create a `.timer` unit as a cron replacement and compare its logging/observability to a crontab entry.
+- Inspect a running service's cgroup with `systemd-cgtop` and `systemctl status`, then apply a `MemoryMax=` limit and trigger OOM.
+
+=================================================
+SECTION 8: OBSERVABILITY, PERFORMANCE & TROUBLESHOOTING
+=================================================
+
+Cover:
+
+- /proc and /sys Filesystems in Depth
+- strace and ltrace
+- perf (CPU profiling, flamegraphs)
+- bpftrace and eBPF tracing
+- ftrace
+- vmstat, iostat, mpstat, sar
+- top/htop internals (how they read /proc)
+- ss and netstat internals
+- lsof
+- dmesg and Kernel Logs
+- Core Dumps and Crash Analysis
+- USE Method (Utilization, Saturation, Errors)
+- Latency vs Throughput Analysis
+- Benchmarking Tools (fio, iperf, stress-ng)
+
+Deep Dive:
+
+- How do you diagnose a CPU-bound performance issue end-to-end using perf + flamegraphs?
+- How do you diagnose high load average with mostly idle CPUs (D-state debugging)?
+- How do you diagnose memory leaks in a running process?
+- How do you diagnose intermittent network latency at the packet level?
+- Full incident walkthrough: "server unresponsive" — systematic triage from ssh timeout to root cause.
+
+Hands-On Exercises:
+
+- Generate a CPU-bound workload with `stress-ng`, profile it with `perf record`/`perf report`, and produce a flamegraph.
+- Use `bpftrace` to trace syscall latency (e.g., `read()`/`write()`) for a running process.
+- Reproduce a memory leak in a small program and confirm growth with `/proc/<pid>/status` and `valgrind`/`smaps`.
+- Use `strace -c` to summarize syscall counts/latency for a slow script and identify the bottleneck syscall.
+- Force a kernel panic/core dump in a disposable VM and analyze it with `crash` or `coredumpctl`.
+
+=================================================
+SECTION 9: VIRTUALIZATION & CONTAINERS ON LINUX
+=================================================
+
+Cover:
+
+- Hypervisors (Type 1 vs Type 2)
+- KVM Architecture
+- QEMU
+- Virtio
+- Linux Namespaces (recap: PID, NET, MNT, UTS, IPC, USER, CGROUP)
+- cgroups v1 vs v2
+- OverlayFS for Containers
+- Container Runtimes (runc, containerd, CRI-O)
+- How `docker run` Maps to Kernel Primitives
+- Nested Virtualization
+
+Deep Dive:
+
+- How does KVM turn Linux into a hypervisor (VT-x/AMD-V)?
+- How do namespaces + cgroups + chroot combine to form a "container"?
+- How does cgroups v2 unified hierarchy differ from v1 in resource accounting?
+
+Hands-On Exercises:
+
+- Build a minimal "container from scratch" using only `unshare`, `chroot`, and `cgcreate`/cgroup files (no Docker).
+- Launch a KVM guest with `virt-install`/QEMU directly and inspect its vCPU threads from the host with `ps`/`top`.
+- Apply a cgroups v2 CPU/memory limit to a process group and verify enforcement by exceeding the limit intentionally.
+- Compare `docker run` behavior against manually replicated namespaces + cgroups + OverlayFS mounts.
+
+=================================================
+SECTION 10: SHELL SCRIPTING & AUTOMATION MASTERY
+=================================================
+
+Cover:
+
+- POSIX Shell vs Bash Extensions
+- Variables, Arrays, Subshells
+- Process Substitution and Command Substitution
+- Pipes and Redirection Internals (file descriptors, dup2)
+- Exit Codes and set -e/-u/-o pipefail
+- Signal Trapping in Scripts (trap)
+- Here-documents and Here-strings
+- Text Processing (sed, awk, grep internals, regex engines)
+- xargs and Parallelism
+- Job Control (bg, fg, disown, nohup)
+- Writing Idempotent, Production-Grade Scripts
+
+Deep Dive:
+
+- How does the shell fork/exec a pipeline (`cmd1 | cmd2 | cmd3`) at the syscall level?
+- How does `trap` intercept signals for graceful cleanup?
+- Write a production-grade deployment script with proper error handling and logging.
+
+Hands-On Exercises:
+
+- Write a bash script with `set -euo pipefail` and a `trap ... EXIT/ERR` handler that cleans up temp files on failure.
+- Build a `cmd1 | cmd2 | cmd3` pipeline and trace file descriptor duplication with `strace -f -e trace=dup2,pipe,execve`.
+- Write an idempotent deployment script (safe to re-run) that provisions a user, directory, and systemd service.
+- Use `xargs -P` to parallelize a batch file-processing task and measure speedup vs a sequential loop.
+
+=================================================
+SECTION 11: SYSTEM DESIGN & PRODUCTION ARCHITECTURE (LINUX-CENTRIC)
+=================================================
+
+Cover:
+
+- Designing Highly Available Linux Fleets
+- Kernel Tuning for High-Throughput Servers (sysctl tuning)
+- File Descriptor and Connection Limits at Scale
+- Capacity Planning (CPU, memory, disk, network)
+- Linux for Databases (I/O patterns, huge pages, NUMA pinning)
+- Linux for Low-Latency Trading/Real-Time Systems
+- Immutable Infrastructure and Golden Images
+- Patch Management and Kernel Live Patching
+- Disaster Recovery for Linux Fleets
+
+Deep Dive:
+
+- Design a Linux host configuration for a high-throughput web server (100k+ connections)
+- Design kernel tuning strategy for a latency-sensitive trading system
+- Design a safe kernel/OS patching strategy for a 10,000-node fleet
+
+Hands-On Exercises:
+
+- Tune `sysctl` network/file-descriptor limits (`net.core.somaxconn`, `fs.file-max`, `ulimit -n`) and load-test a server to its new connection ceiling.
+- Pin a benchmark process to specific NUMA nodes with `numactl` and compare latency against unpinned execution.
+- Design and script a canary kernel upgrade rollout across a small multi-VM lab, including rollback steps.
+
+=================================================
+SECTION 12: FAANG BEHAVIORAL & LEADERSHIP (LINUX/SRE CONTEXT)
+=================================================
+
+Cover:
+
+- STAR Method for Linux/SRE Incidents
+- On-call War Stories and Postmortems
+- Blameless Postmortem Culture
+- Leading a Major Outage Response
+- Mentoring Engineers on Linux Internals
+- Balancing Reliability vs Feature Velocity
+
+Include:
+
+- 15 behavioral questions with model STAR answers tailored to Linux/SRE scenarios
+
+=================================================
+SECTION 13: HANDS-ON LABS & DOCUMENTATION
+=================================================
+
+Provide a consolidated set of 15+ hands-on labs spanning all sections above, each with:
+
+- Objective
+- Environment setup (VM/container instructions)
+- Step-by-step tasks
+- Verification commands
+- Expected output
+- Cleanup steps
+
+Also provide a master command-line cheat sheet organized by section (process, memory, filesystem,
+network, security, systemd, observability) covering the top 100 commands with one-line descriptions.
+
+=================================================
+
+Finally, generate a top-level README.md (index) that links to every section file with a one-line
+summary of what each section covers, structured for 3–6 months of disciplined study leading into
+FAANG/MANGA-level Linux/SRE interviews.
